@@ -1,0 +1,1165 @@
+/* =========================================================
+   Pixel Bike 2D — стилі.
+   --u — розмір одного «ігрового пікселя» в CSS-пікселях (рахується в useFrameScale).
+   Усі розміри інтерфейсу кратні --u, тож UI масштабується разом із грою.
+   ========================================================= */
+
+:root {
+  --u: 3px;
+  --bg: #12101f;
+  --panel: #221e3a;
+  --panel-2: #2f2956;
+  --panel-3: #3d3670;
+  --ink: #f4efe1;
+  --muted: #a59fc4;
+  --line: #0b0a12;
+  --accent: #ffcc33;
+  --accent-2: #ffe27a;
+  --accent-ink: #2a1a00;
+  --good: #7ed957;
+  --bad: #ff5470;
+  --cyan: #4cd6ff;
+  --font: 'Press Start 2P', ui-monospace, Menlo, Consolas, monospace;
+
+  /* «піксельна» рамка з вирізаними кутами */
+  --px-outline: var(--u) 0 0 0 var(--line), calc(var(--u) * -1) 0 0 0 var(--line), 0 var(--u) 0 0 var(--line),
+    0 calc(var(--u) * -1) 0 0 var(--line);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(#ffffff0d 1px, transparent 1px), linear-gradient(180deg, #1b1733 0%, #0d0b18 100%);
+  background-size: 12px 12px, 100% 100%;
+  color: var(--ink);
+  font-family: var(--font);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.8em;
+  padding: 0.25em 0.4em;
+  font: inherit;
+  text-align: center;
+  color: var(--ink);
+  background: var(--panel-2);
+  box-shadow: 0 2px 0 var(--line), inset 0 -2px 0 #0004;
+}
+
+/* ---------- Сторінка та рамка гри ---------- */
+
+.page {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.frame {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  background: #000;
+  font-size: calc(var(--u) * 4);
+  line-height: 1.6;
+  box-shadow: 0 0 0 var(--u) var(--line), 0 0 0 calc(var(--u) * 2) #3d3658, 0 0 0 calc(var(--u) * 3) var(--line),
+    0 calc(var(--u) * 6) calc(var(--u) * 10) #000a;
+  touch-action: none;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.bg-canvas.is-locked {
+  filter: grayscale(1) brightness(0.45);
+}
+
+.px-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex: none;
+}
+
+.px-btn .px-icon {
+  margin-top: calc(var(--u) * -0.5);
+}
+
+kbd .px-icon {
+  width: calc(var(--u) * 5) !important;
+  height: auto !important;
+}
+
+.sprite-icon {
+  display: inline-block;
+  vertical-align: middle;
+  image-rendering: pixelated;
+  flex: none;
+}
+
+/* ---------- Панелі та кнопки ---------- */
+
+.px-box {
+  position: relative;
+  margin: var(--u);
+  background: var(--panel);
+  box-shadow: var(--px-outline), inset 0 calc(var(--u) * -1) 0 0 #0006, inset 0 var(--u) 0 0 #ffffff14;
+}
+
+.px-btn {
+  position: relative;
+  margin: var(--u);
+  padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  border: 0;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: calc(var(--u) * 4);
+  line-height: 1.3;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--px-outline), inset 0 calc(var(--u) * -1.5) 0 0 #0007, inset 0 var(--u) 0 0 #ffffff26;
+}
+
+.px-btn:hover,
+.px-btn:focus-visible {
+  background: var(--panel-3);
+  outline: none;
+}
+
+.px-btn:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * -2.5);
+  pointer-events: none;
+  box-shadow: 0 0 0 var(--u) var(--accent);
+}
+
+.px-btn:active:not(:disabled) {
+  transform: translateY(var(--u));
+  box-shadow: var(--px-outline), inset 0 var(--u) 0 0 #0005;
+}
+
+.px-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.px-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.px-btn--primary:hover,
+.px-btn--primary:focus-visible {
+  background: var(--accent-2);
+}
+
+.px-btn--danger {
+  background: #b8323c;
+}
+
+.px-btn--danger:hover,
+.px-btn--danger:focus-visible {
+  background: #d8434e;
+}
+
+.px-btn--small {
+  padding: calc(var(--u) * 2) calc(var(--u) * 2.5);
+  font-size: calc(var(--u) * 3.5);
+}
+
+.chip,
+.coin-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.5);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  background: #0b0a12b3;
+  box-shadow: var(--px-outline);
+  font-size: calc(var(--u) * 3.5);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: calc(var(--u) * 3);
+  line-height: 1.6;
+  margin: calc(var(--u) * 1) 0 0;
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(var(--u) * 2) calc(var(--u) * 3) calc(var(--u) * 6);
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-3) transparent;
+  touch-action: pan-y;
+}
+
+/* ---------- Верхня панель екранів ---------- */
+
+.topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 2);
+  padding: calc(var(--u) * 2);
+  background: linear-gradient(#12101fee, #12101f99);
+}
+
+.topbar__title {
+  margin: 0;
+  font-size: calc(var(--u) * 4.5);
+  text-shadow: var(--u) var(--u) 0 var(--line);
+}
+
+/* ---------- Головне меню ---------- */
+
+.menu__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #12101fe6 0%, #12101f66 35%, #12101f33 55%, #12101fd9 100%);
+}
+
+.menu__content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--u) * 12) calc(var(--u) * 6) calc(var(--u) * 6);
+}
+
+.logo {
+  position: relative;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  animation: logo-bob 1.6s steps(4) infinite;
+}
+
+.logo__line {
+  display: block;
+  font-size: calc(var(--u) * 14);
+  letter-spacing: calc(var(--u) * 1);
+}
+
+.logo__line--a {
+  color: var(--accent);
+  text-shadow: var(--u) var(--u) 0 #e8383d, calc(var(--u) * 2) calc(var(--u) * 2) 0 #e8383d,
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--line);
+}
+
+.logo__line--b {
+  margin-top: calc(var(--u) * 3);
+  color: var(--cyan);
+  text-shadow: var(--u) var(--u) 0 #3f4fe0, calc(var(--u) * 2) calc(var(--u) * 2) 0 #3f4fe0,
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--line);
+}
+
+.logo__badge {
+  position: absolute;
+  right: calc(var(--u) * -6);
+  bottom: calc(var(--u) * -4);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.5);
+  background: #e8383d;
+  color: #fff;
+  font-size: calc(var(--u) * 4);
+  transform: rotate(-12deg);
+  box-shadow: var(--px-outline);
+}
+
+@keyframes logo-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--u) * -1.5));
+  }
+}
+
+.tagline {
+  margin: calc(var(--u) * 7) 0 0;
+  text-align: center;
+  font-size: calc(var(--u) * 3);
+  line-height: 1.8;
+  color: var(--ink);
+  text-shadow: var(--u) var(--u) 0 var(--line);
+}
+
+.menu__buttons {
+  margin-top: auto;
+  width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.5);
+}
+
+.menu__footer {
+  margin-top: calc(var(--u) * 5);
+  display: flex;
+  gap: calc(var(--u) * 3);
+}
+
+/* ---------- Вибір локації ---------- */
+
+.select__preview {
+  position: absolute;
+  inset: 0;
+  touch-action: pan-y;
+}
+
+.select__lock {
+  position: absolute;
+  inset: 0 0 45% 0;
+  display: grid;
+  place-items: center;
+  animation: shake-lock 2s steps(2) infinite;
+}
+
+@keyframes shake-lock {
+  0%,
+  80%,
+  100% {
+    transform: none;
+  }
+  85% {
+    transform: translateX(var(--u));
+  }
+  90% {
+    transform: translateX(calc(var(--u) * -1));
+  }
+}
+
+.select__card {
+  position: relative;
+  z-index: 2;
+  margin: auto calc(var(--u) * 3) calc(var(--u) * 3);
+  padding: calc(var(--u) * 3) calc(var(--u) * 4) calc(var(--u) * 4);
+  background: #221e3af2;
+  font-size: calc(var(--u) * 3);
+}
+
+.select__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.select__dots {
+  display: flex;
+  gap: calc(var(--u) * 2);
+}
+
+.dot {
+  width: calc(var(--u) * 3);
+  height: calc(var(--u) * 3);
+  padding: 0;
+  border: 0;
+  background: var(--panel-3);
+  cursor: pointer;
+}
+
+.dot.is-active {
+  background: var(--accent);
+}
+
+.dot.is-locked {
+  opacity: 0.4;
+}
+
+.select__name {
+  margin: calc(var(--u) * 2) 0 0;
+  font-size: calc(var(--u) * 5.5);
+  color: var(--accent);
+  text-shadow: var(--u) var(--u) 0 var(--line);
+}
+
+.select__subtitle {
+  margin: calc(var(--u) * 1) 0 0;
+  color: var(--muted);
+}
+
+.select__desc {
+  margin: calc(var(--u) * 2.5) 0 0;
+  line-height: 1.8;
+}
+
+.select__obstacles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: calc(var(--u) * 2);
+  margin-top: calc(var(--u) * 2.5);
+  padding: calc(var(--u) * 2);
+  background: #0b0a1266;
+  min-height: calc(var(--u) * 12);
+}
+
+.select__obstacles .sprite-icon {
+  max-height: calc(var(--u) * 14);
+  width: auto !important;
+}
+
+.select__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--u) * 2);
+  margin: calc(var(--u) * 3) 0 0;
+}
+
+.select__stats dt {
+  color: var(--muted);
+  font-size: calc(var(--u) * 2.5);
+}
+
+.select__stats dd {
+  margin: calc(var(--u) * 1) 0 0;
+}
+
+.select__actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: calc(var(--u) * 3);
+}
+
+.select__locked {
+  margin: calc(var(--u) * 4) 0 calc(var(--u) * 1);
+  padding: calc(var(--u) * 3);
+  background: #0b0a1299;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.8;
+}
+
+.stars {
+  display: inline-flex;
+  gap: calc(var(--u) * 1);
+}
+
+.stars--animate .stars__item {
+  animation: star-pop 0.4s steps(4) both;
+}
+
+@keyframes star-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---------- Гараж ---------- */
+
+.garage__stage {
+  position: relative;
+  height: calc(var(--u) * 116);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #4b4b57;
+}
+
+.garage__road {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, #e8e8e8 0 calc(var(--u) * 12), transparent calc(var(--u) * 12) calc(var(--u) * 32))
+      calc(50% - var(--u) * 30) 0 / calc(var(--u) * 2) 100% no-repeat,
+    repeating-linear-gradient(180deg, #e8e8e8 0 calc(var(--u) * 12), transparent calc(var(--u) * 12) calc(var(--u) * 32))
+      calc(50% + var(--u) * 30) 0 / calc(var(--u) * 2) 100% no-repeat,
+    linear-gradient(90deg, #a9a3a0 0 12%, #4b4b57 12% 88%, #a9a3a0 88%);
+  animation: road-scroll 0.5s linear infinite;
+}
+
+@keyframes road-scroll {
+  from {
+    background-position-y: 0, 0, 0;
+  }
+  to {
+    background-position-y: calc(var(--u) * 32), calc(var(--u) * 32), 0;
+  }
+}
+
+.garage__bike {
+  position: relative;
+  filter: drop-shadow(calc(var(--u) * 2) calc(var(--u) * 2) 0 #0006);
+}
+
+.garage__info {
+  margin: calc(var(--u) * 3);
+  padding: calc(var(--u) * 3);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.garage__name {
+  margin: 0;
+  font-size: calc(var(--u) * 5);
+  color: var(--accent);
+}
+
+.garage__status {
+  margin: calc(var(--u) * 2) 0;
+  color: var(--muted);
+  font-size: calc(var(--u) * 3);
+}
+
+.garage__msg {
+  margin: calc(var(--u) * 1) 0 0;
+  font-size: calc(var(--u) * 2.5);
+  line-height: 1.8;
+  color: var(--muted);
+  min-height: 3.6em;
+}
+
+.garage__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: calc(var(--u) * 1.5);
+  padding: 0 calc(var(--u) * 3);
+}
+
+.skin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1.5) 0;
+  border: 0;
+  background: var(--panel);
+  cursor: pointer;
+  box-shadow: var(--px-outline);
+}
+
+.skin.is-selected {
+  background: var(--panel-3);
+  box-shadow: var(--px-outline), 0 0 0 calc(var(--u) * 2) var(--accent);
+}
+
+.skin.is-locked canvas {
+  filter: brightness(0.55);
+}
+
+.skin__label {
+  font-size: calc(var(--u) * 2);
+  color: var(--accent);
+}
+
+/* ---------- Як грати / Налаштування ---------- */
+
+.howto__section,
+.settings__group {
+  padding: calc(var(--u) * 3);
+  margin-bottom: calc(var(--u) * 3);
+  font-size: calc(var(--u) * 3);
+  line-height: 1.9;
+}
+
+.howto__section h3,
+.settings__group h3 {
+  margin: 0 0 calc(var(--u) * 2);
+  font-size: calc(var(--u) * 4);
+  color: var(--accent);
+}
+
+.howto__section p {
+  margin: 0;
+}
+
+.howto__section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.howto__row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  margin-bottom: calc(var(--u) * 2);
+}
+
+.howto__icon {
+  flex: none;
+  width: calc(var(--u) * 26);
+  display: flex;
+  justify-content: center;
+}
+
+.howto__keys li {
+  margin-bottom: calc(var(--u) * 1.5);
+}
+
+.howto__keys kbd {
+  font-size: calc(var(--u) * 2.5);
+}
+
+.howto__loc {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  margin-bottom: calc(var(--u) * 3);
+}
+
+.howto__loc-icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: calc(var(--u) * 2);
+}
+
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 calc(var(--u) * 2);
+  padding: calc(var(--u) * 2) calc(var(--u) * 2);
+  border: 0;
+  background: #0b0a1266;
+  font-size: calc(var(--u) * 3);
+  cursor: pointer;
+}
+
+.toggle:focus-visible {
+  outline: var(--u) solid var(--accent);
+}
+
+.toggle__box {
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 1.5);
+  background: var(--bad);
+  color: #fff;
+  box-shadow: var(--px-outline);
+}
+
+.toggle.is-on .toggle__box {
+  background: var(--good);
+  color: #12301a;
+}
+
+.slider {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.5);
+  font-size: calc(var(--u) * 3);
+}
+
+.slider input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: calc(var(--u) * 3);
+  background: var(--panel-3);
+  box-shadow: var(--px-outline);
+  cursor: pointer;
+}
+
+.slider input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: calc(var(--u) * 4);
+  height: calc(var(--u) * 6);
+  background: var(--accent);
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--px-outline);
+}
+
+.slider input::-moz-range-thumb {
+  width: calc(var(--u) * 4);
+  height: calc(var(--u) * 6);
+  background: var(--accent);
+  border: 0;
+  border-radius: 0;
+}
+
+.slider input:focus-visible {
+  outline: var(--u) solid var(--accent);
+}
+
+.settings__confirm {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings__confirm p {
+  margin: 0 0 calc(var(--u) * 2);
+  color: var(--bad);
+}
+
+/* ---------- Гра: HUD ---------- */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--u) * 2) calc(var(--u) * 2.5);
+  font-size: calc(var(--u) * 4);
+  text-shadow: var(--u) 0 0 var(--line), calc(var(--u) * -1) 0 0 var(--line), 0 var(--u) 0 var(--line),
+    0 calc(var(--u) * -1) 0 var(--line);
+}
+
+.hud__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 2);
+}
+
+.hud__hearts {
+  display: flex;
+  gap: calc(var(--u) * 1);
+}
+
+.hud__hearts .is-lost {
+  animation: heart-lost 0.5s steps(5);
+}
+
+@keyframes heart-lost {
+  0%,
+  40%,
+  80% {
+    transform: scale(1.4);
+  }
+  20%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hud__coins {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.5);
+  margin-left: auto;
+}
+
+.pop {
+  display: inline-block;
+  animation: pop 0.2s steps(2);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(1.35);
+    color: var(--accent);
+  }
+}
+
+.hud__pause {
+  pointer-events: auto;
+  display: flex;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1.5) calc(var(--u) * 2);
+  border: 0;
+  background: #0b0a1299;
+  cursor: pointer;
+  box-shadow: var(--px-outline);
+}
+
+.hud__pause span {
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 5);
+  background: var(--ink);
+}
+
+.hud__progress {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.5);
+  margin-top: calc(var(--u) * 2);
+}
+
+.hud__track {
+  position: relative;
+  flex: 1;
+  height: calc(var(--u) * 2);
+  background: #0b0a12aa;
+  box-shadow: var(--px-outline);
+}
+
+.hud__fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.hud__marker {
+  position: absolute;
+  top: calc(var(--u) * -1.5);
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 5);
+  margin-left: calc(var(--u) * -1);
+  background: #e8383d;
+  box-shadow: var(--px-outline);
+}
+
+.hud__distance {
+  margin-top: calc(var(--u) * 2);
+  text-align: center;
+  font-size: calc(var(--u) * 5);
+}
+
+.hud__bottom {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(var(--u) * 3);
+}
+
+.hud__effects {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+}
+
+.hud__shield {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+}
+
+.hud__shield-bar {
+  width: calc(var(--u) * 16);
+  height: calc(var(--u) * 2);
+  background: #0b0a12aa;
+  box-shadow: var(--px-outline);
+}
+
+.hud__shield-bar span {
+  display: block;
+  height: 100%;
+  background: var(--cyan);
+}
+
+/* ---------- Гра: сенсорні зони ---------- */
+
+.touch {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+}
+
+.touch__zone {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 calc(var(--u) * 4) calc(var(--u) * 10);
+  touch-action: none;
+}
+
+.touch__zone--right {
+  justify-content: flex-end;
+}
+
+.touch__zone.is-active {
+  background: linear-gradient(0deg, #ffffff12, transparent 60%);
+}
+
+.touch__arrow {
+  color: #ffffff59;
+  filter: drop-shadow(var(--u) var(--u) 0 #0008);
+}
+
+.touch__zone.is-active .touch__arrow {
+  color: #ffffffb3;
+}
+
+/* ---------- Гра: відлік ---------- */
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-shadow: var(--u) var(--u) 0 var(--line), calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--line);
+}
+
+.countdown p {
+  margin: 0;
+}
+
+.countdown__title {
+  font-size: calc(var(--u) * 7);
+  color: var(--accent);
+}
+
+.countdown__mode {
+  margin-top: calc(var(--u) * 2) !important;
+  font-size: calc(var(--u) * 3);
+  text-shadow: var(--u) var(--u) 0 var(--line);
+}
+
+.countdown__num {
+  margin-top: calc(var(--u) * 8) !important;
+  font-size: calc(var(--u) * 24);
+  animation: count-pop 1s steps(6) both;
+}
+
+.countdown__hint {
+  margin-top: calc(var(--u) * 10) !important;
+  font-size: calc(var(--u) * 3);
+  color: var(--ink);
+  text-shadow: var(--u) var(--u) 0 var(--line);
+}
+
+.countdown__go {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40%;
+  z-index: 4;
+  margin: 0;
+  text-align: center;
+  font-size: calc(var(--u) * 10);
+  color: var(--good);
+  pointer-events: none;
+  text-shadow: var(--u) var(--u) 0 var(--line), calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--line);
+  animation: go-out 0.7s steps(7) forwards;
+}
+
+@keyframes count-pop {
+  0% {
+    transform: scale(2);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes go-out {
+  0% {
+    transform: scale(0.6);
+  }
+  30% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1.4) translateY(calc(var(--u) * -10));
+    opacity: 0;
+  }
+}
+
+/* ---------- Оверлеї: пауза / результат ---------- */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0814a6;
+  animation: fade-in 0.2s steps(3);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.overlay__panel {
+  width: 86%;
+  max-height: 92%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: calc(var(--u) * 4);
+  text-align: center;
+}
+
+.overlay__panel.is-win {
+  box-shadow: var(--px-outline), 0 0 0 calc(var(--u) * 2) var(--good);
+}
+
+.overlay__panel.is-lose {
+  box-shadow: var(--px-outline), 0 0 0 calc(var(--u) * 2) var(--bad);
+}
+
+.overlay__title {
+  margin: 0 0 calc(var(--u) * 3);
+  font-size: calc(var(--u) * 7);
+  color: var(--accent);
+  text-shadow: var(--u) var(--u) 0 var(--line);
+}
+
+.is-lose .overlay__title {
+  color: var(--bad);
+}
+
+.overlay--result .stars {
+  justify-content: center;
+  margin-bottom: calc(var(--u) * 3);
+}
+
+.overlay__toggles {
+  margin-top: calc(var(--u) * 3);
+}
+
+.overlay__buttons {
+  display: flex;
+  flex-direction: column;
+  margin-top: calc(var(--u) * 2);
+}
+
+.result__stats {
+  margin: 0 0 calc(var(--u) * 2);
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  background: #0b0a1266;
+  font-size: calc(var(--u) * 3);
+  text-align: left;
+}
+
+.result__stats div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(var(--u) * 1) 0;
+}
+
+.result__stats dt {
+  color: var(--muted);
+}
+
+.result__stats dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+}
+
+.result__stats small {
+  color: var(--muted);
+  font-size: calc(var(--u) * 2.5);
+}
+
+.badge {
+  margin: calc(var(--u) * 1) 0;
+  padding: calc(var(--u) * 1.5);
+  font-size: calc(var(--u) * 3);
+  animation: badge-blink 0.8s steps(2) infinite;
+}
+
+.badge--gold {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.badge--green {
+  background: var(--good);
+  color: #12301a;
+  animation: none;
+}
+
+@keyframes badge-blink {
+  50% {
+    filter: brightness(1.25);
+  }
+}
+
+/* ---------- Бічні панелі (широкі екрани) ---------- */
+
+.side {
+  width: 220px;
+  font-size: 10px;
+  line-height: 2;
+  color: var(--muted);
+}
+
+.side h3 {
+  color: var(--accent);
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+
+.side p {
+  margin: 0 0 16px;
+}
+
+.side ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.side li {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1100px), (max-height: 520px) {
+  .side {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}
