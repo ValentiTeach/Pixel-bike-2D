@@ -1,8 +1,7 @@
 import { useRef } from 'react';
-import PxIcon from './PxIcon.jsx';
 import GameCanvas from './GameCanvas.jsx';
-import PixelButton from './PixelButton.jsx';
-import { SpriteIcon } from './SpriteIcon.jsx';
+import Button from './Button.jsx';
+import Icon from './Icon.jsx';
 import { useMenuKeys } from '../hooks/useMenuKeys.js';
 import { getSkin } from '../game/skins.js';
 import { LOCATIONS } from '../game/locations.js';
@@ -19,31 +18,38 @@ export default function MainMenu({ save, onNavigate }) {
       <div className="menu__shade" />
       <div className="menu__content">
         <div className="menu__brand">
-          <h1 className="logo" aria-label="Pixel Bike 2D">
-          <span className="logo__line logo__line--a">PIXEL</span>
-          <span className="logo__line logo__line--b">BIKE</span>
-          <span className="logo__badge">2D</span>
-        </h1>
-          <p className="tagline">Крути педалі. Стрибай через перешкоди. Дістанься фінішу!</p>
-          <footer className="menu__footer">
-            <span className="chip">
-              <SpriteIcon name="star" />
-              {stars}/{LOCATIONS.length * 3}
+          <span className="eyebrow">2D cycling · 6 локацій</span>
+          <h1 className="title">
+            Pixel
+            <br />
+            Bike<span className="title__dot">.</span>
+          </h1>
+          <p className="lead">Крути педалі, стрибай через перешкоди й доїдь до фінішу.</p>
+          <div className="chips">
+            <span className="pill">
+              <Icon name="star" fill className="c-accent" />
+              {stars} / {LOCATIONS.length * 3}
             </span>
-            <span className="chip">
-              <SpriteIcon name="coin" />
+            <span className="pill pill--coin">
+              <Icon name="coin" />
               {save.coins}
             </span>
-          </footer>
+          </div>
         </div>
 
-        <nav className="menu__buttons" ref={navRef}>
-          <PixelButton variant="primary" onClick={() => onNavigate('select')}>
-            <PxIcon name="right" /> Грати
-          </PixelButton>
-          <PixelButton onClick={() => onNavigate('garage')}>Гараж</PixelButton>
-          <PixelButton onClick={() => onNavigate('howto')}>Як грати</PixelButton>
-          <PixelButton onClick={() => onNavigate('settings')}>Налаштування</PixelButton>
+        <nav className="menu__nav glass" ref={navRef}>
+          <Button variant="primary" size="lg" icon="play" onClick={() => onNavigate('select')}>
+            Грати
+          </Button>
+          <Button variant="ghost" icon="bike" iconRight="chevronRight" onClick={() => onNavigate('garage')}>
+            Гараж
+          </Button>
+          <Button variant="ghost" icon="help" iconRight="chevronRight" onClick={() => onNavigate('howto')}>
+            Як грати
+          </Button>
+          <Button variant="ghost" icon="sliders" iconRight="chevronRight" onClick={() => onNavigate('settings')}>
+            Налаштування
+          </Button>
         </nav>
       </div>
     </div>

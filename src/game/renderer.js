@@ -3,8 +3,8 @@
 // небезпечні смуги → ворота старту/фінішу → перешкоди і бонуси → велосипедист →
 // частинки → погода → темрява/світло → тексти → спалах.
 import { VIEW_W, VIEW_H, GROUND_TILE_W, GROUND_TILE_H, LAYER_W, PLAYER_HITBOX } from './constants.js';
-import { getSprite, getBikeFrame, getShadow } from './sprites.js';
-import { BIKE_FRAMES } from './bikeSprite.js';
+import { getSprite, getShadow } from './sprites.js';
+import { drawRider, RIDER_CANVAS } from './bikeSprite.js';
 import { createRng, hashString } from './rng.js';
 import { drawPixelText } from './font.js';
 
@@ -38,6 +38,10 @@ export class Renderer {
     this.ground = makeCanvas(GROUND_TILE_W, GROUND_TILE_H);
     location.paintGround(this.ground.getContext('2d'), rng, GROUND_TILE_W, GROUND_TILE_H);
     this.light = location.darkness ? makeCanvas(VIEW_W * LIGHT_SCALE, VIEW_H * LIGHT_SCALE) : null;
+    this.riderCanvas = makeCanvas(RIDER_CANVAS.w, RIDER_CANVAS.h);
+    this.riderCtx = this.riderCanvas.getContext('2d');
+    this.streaks = [];
+    this.lastTime = 0;
   }
 
   render(world) {
@@ -84,6 +88,7 @@ export class Renderer {
     ctx.globalAlpha = 1;
     ctx.restore();
 
+    this.drawSpeedLines(world);
     this.drawWeather(world.weather);
     if (this.light) this.drawDarkness(world, cam);
 
@@ -190,44 +195,71 @@ export class Renderer {
   drawPlayer(world) {
     const ctx = this.ctx;
     const p = world.player;
-    if (p.y > 200) return;
-    const x = Math.round(p.x);
-    const y = Math.round(p.y);
-    const frame = Math.floor(p.pedal) % BIKE_FRAMES;
+    const RC = RIDER_CANVAS;
+    const crashed = world.phase === 'crash' || (world.phase === 'over' && world.result && !world.result.completed);
 
-    // тінь на землі під велосипедом
+    // тінь на землі під велосипедом: що вище в повітрі — то менша
     const ground = world.surfaceUnder(p.x + PLAYER_HITBOX.l, p.x + p.w - PLAYER_HITBOX.r);
-    if (ground !== null) {
+    if (ground !== null && p.y < VIEW_H) {
       const h = ground - (p.y + p.h);
-      const w = Math.max(6, Math.round(18 - Math.max(0, h) / 4));
+      const w = Math.max(6, Math.round(20 - Math.max(0, h) / 3.5));
       ctx.drawImage(getShadow(w), Math.round(p.x + p.w / 2 - w / 2), ground - 2);
     }
 
-    const img = getBikeFrame(this.skin, frame);
-    if (world.phase === 'crash' || (world.phase === 'over' && world.result && !world.result.completed)) {
-      ctx.save();
-      ctx.translate(x + p.w / 2, y + p.h / 2);
-      ctx.rotate(Math.min(p.spin, Math.PI * 1.5));
-      ctx.drawImage(img, -p.w / 2, -p.h / 2);
-      ctx.restore();
-      return;
+    const blink = !crashed && world.invuln > 0 && Math.floor(world.invuln * 14) % 2 === 0;
+    if (p.y < VIEW_H + 20 && !blink) {
+      const sc = this.riderCtx;
+      sc.clearRect(0, 0, RC.w, RC.h);
+      drawRider(sc, this.skin.palette, {
+        pedal: p.pedal,
+        wheel: p.wheel,
+        pitch: Math.round(p.pitch / 0.05) * 0.05, // невеликий крок кута — менше «мерехтіння» пікселів
+        pose: crashed ? 'air' : p.pose,
+        crouch: Math.round(p.crouch * 2) / 2,
+        bob: Math.round(p.bob),
+        sway: Math.round(p.sway),
+        blur: Math.max(0, Math.min(1, (p.vx - 110) / 70)),
+        part: crashed && world.rider ? 'bike' : 'all',
+      });
+      ctx.drawImage(this.riderCanvas, Math.round(p.x) - RC.ox, Math.round(p.y) - RC.oy);
     }
-    const blink = world.invuln > 0 && Math.floor(world.invuln * 14) % 2 === 0;
-    if (!blink) {
-      if (!p.onGround && p.vy < -60) {
-        // у стрибку — «заднє колесо вниз» на 1 піксель для відчуття руху
-        ctx.drawImage(img, 0, 0, 13, p.h, x, y + 1, 13, p.h);
-        ctx.drawImage(img, 13, 0, p.w - 13, p.h, x + 13, y, p.w - 13, p.h);
-      } else ctx.drawImage(img, x, y);
+
+    // райдер, що злетів при аварії
+    const r = world.rider;
+    if (r) {
+      const sc = this.riderCtx;
+      sc.clearRect(0, 0, RC.w, RC.h);
+      drawRider(sc, this.skin.palette, { pedal: 1, wheel: 0, pitch: Math.round(r.rot / 0.2) * 0.2, pose: 'tuck', crouch: 1, part: 'rider' });
+      ctx.drawImage(this.riderCanvas, Math.round(r.x) - RC.ox, Math.round(r.y) - RC.oy);
     }
-    if (world.shield > 0) {
+
+    if (world.shield > 0 && !crashed) {
       const ending = world.shield < 1.5;
       if (!ending || Math.floor(world.time * 10) % 2 === 0) {
         ctx.globalAlpha = 0.65 + 0.25 * Math.sin(world.time * 8);
-        ctx.drawImage(getSprite('shieldRing'), x - 3, y - 5);
+        ctx.drawImage(getSprite('shieldRing'), Math.round(p.x) - 3, Math.round(p.y) - 5);
         ctx.globalAlpha = 1;
       }
     }
+  }
+
+  // Лінії швидкості при розгоні — тонкі світлі штрихи, що пролітають повз.
+  drawSpeedLines(world) {
+    const p = world.player;
+    const t = world.time;
+    const dt = Math.min(0.05, Math.max(0, t - this.lastTime));
+    this.lastTime = t;
+    const k = Math.max(0, Math.min(1, (p.vx - 140) / 50));
+    if (world.phase === 'ride' && k > 0 && this.streaks.length < 10 && Math.random() < k * 0.5) {
+      this.streaks.push({ x: VIEW_W + Math.random() * 20, y: 20 + Math.random() * (VIEW_H - 50), len: 8 + Math.random() * 22, v: 380 + Math.random() * 200 });
+    }
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    this.streaks = this.streaks.filter((s) => {
+      s.x -= s.v * dt;
+      ctx.fillRect(Math.round(s.x), Math.round(s.y), Math.round(s.len), 1);
+      return s.x + s.len > 0;
+    });
   }
 
   drawParticles(parts) {

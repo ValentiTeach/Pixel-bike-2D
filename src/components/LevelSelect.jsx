@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import PxIcon from './PxIcon.jsx';
 import GameCanvas from './GameCanvas.jsx';
-import PixelButton from './PixelButton.jsx';
+import Button from './Button.jsx';
+import Icon from './Icon.jsx';
 import TopBar from './TopBar.jsx';
 import Stars from './Stars.jsx';
 import { SpriteIcon } from './SpriteIcon.jsx';
@@ -40,7 +40,7 @@ export default function LevelSelect({ save, onBack, onStart }) {
   const [touchX, setTouchX] = useState(null);
 
   return (
-    <div className="screen select">
+    <div className="screen select" style={{ '--loc': loc.theme.accent }}>
       <div
         className="select__preview"
         onPointerDown={(e) => setTouchX(e.clientX)}
@@ -52,47 +52,55 @@ export default function LevelSelect({ save, onBack, onStart }) {
         <GameCanvas key={loc.id} locationId={loc.id} mode="demo" skin={getSkin(save.skin)} className={`bg-canvas ${unlocked ? '' : 'is-locked'}`} />
         {!unlocked && (
           <div className="select__lock">
-            <SpriteIcon name="lock" scale={3} />
+            <Icon name="lock" size="2.6em" />
           </div>
         )}
       </div>
 
       <TopBar title="Локації" onBack={onBack} coins={save.coins} />
 
-      <section className="select__card px-box" style={{ '--accent': loc.theme.accent }}>
-        <div className="select__nav">
-          <PixelButton small onClick={() => move(-1)} disabled={index === 0} aria-label="Попередня локація">
-            <PxIcon name="left" />
-          </PixelButton>
-          <div className="select__dots">
-            {LOCATIONS.map((l, i) => (
-              <button
-                type="button"
-                key={l.id}
-                className={`dot ${i === index ? 'is-active' : ''} ${isUnlocked(save, i) ? '' : 'is-locked'}`}
-                onClick={() => setIndex(i)}
-                aria-label={l.name}
-              />
-            ))}
+      <section className="select__card glass" key={loc.id}>
+        <div className="select__head">
+          <span className="eyebrow">
+            {String(index + 1).padStart(2, '0')} / {String(LOCATIONS.length).padStart(2, '0')}
+          </span>
+          <div className="select__arrows">
+            <Button variant="ghost" size="sm" icon="chevronLeft" onClick={() => move(-1)} disabled={index === 0} aria-label="Попередня локація" />
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="chevronRight"
+              onClick={() => move(1)}
+              disabled={index === LOCATIONS.length - 1}
+              aria-label="Наступна локація"
+            />
           </div>
-          <PixelButton small onClick={() => move(1)} disabled={index === LOCATIONS.length - 1} aria-label="Наступна локація">
-            <PxIcon name="right" />
-          </PixelButton>
         </div>
 
-        <h2 className="select__name">
-          {index + 1}. {loc.name}
-        </h2>
+        <h2 className="select__name">{loc.name}</h2>
         <p className="select__subtitle">{loc.subtitle}</p>
+        <div className="select__bars" role="tablist" aria-label="Локації">
+          {LOCATIONS.map((l, i) => (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              key={l.id}
+              className={`bar ${i === index ? 'is-active' : ''} ${isUnlocked(save, i) ? '' : 'is-locked'}`}
+              onClick={() => setIndex(i)}
+              aria-label={l.name}
+            />
+          ))}
+        </div>
         <p className="select__desc">{loc.description}</p>
 
         <div className="select__obstacles" aria-label="Перешкоди локації">
           {[...loc.obstacles, ...loc.movers, ...loc.flyers, ...loc.hazards].map((o) => (
-            <SpriteIcon key={o.type} name={ENTITY_TYPES[o.type].sprites[0]} />
+            <SpriteIcon key={o.type} name={ENTITY_TYPES[o.type].sprites[0]} box={14} />
           ))}
         </div>
 
-        <dl className="select__stats">
+        <dl className="metrics">
           <div>
             <dt>Зірки</dt>
             <dd>
@@ -104,23 +112,25 @@ export default function LevelSelect({ save, onBack, onStart }) {
             <dd>{loc.lengthM} м</dd>
           </div>
           <div>
-            <dt>Без кінця</dt>
+            <dt>Рекорд ∞</dt>
             <dd>{prog.bestEndless ? `${prog.bestEndless} м` : '—'}</dd>
           </div>
         </dl>
 
         {unlocked ? (
           <div className="select__actions">
-            <PixelButton variant="primary" onClick={() => onStart(loc.id, 'level')}>
-              <PxIcon name="right" /> Рівень
-            </PixelButton>
-            <PixelButton onClick={() => onStart(loc.id, 'endless')} disabled={!prog.completed} title="Нескінченний режим">
-              <PxIcon name="infinity" /> Без кінця
-            </PixelButton>
-            {!prog.completed && <p className="hint">Пройди рівень, щоб відкрити нескінченний режим</p>}
+            <Button variant="primary" icon="play" onClick={() => onStart(loc.id, 'level')}>
+              Почати
+            </Button>
+            <Button icon="infinity" onClick={() => onStart(loc.id, 'endless')} disabled={!prog.completed} title="Нескінченний режим">
+              Без кінця
+            </Button>
+            {!prog.completed && <p className="hint">Пройди рівень, щоб відкрити нескінченний режим.</p>}
           </div>
         ) : (
-          <p className="select__locked">Пройди «{LOCATIONS[index - 1].name}», щоб відкрити цю локацію</p>
+          <p className="select__locked">
+            <Icon name="lock" /> Пройди «{LOCATIONS[index - 1].name}», щоб відкрити
+          </p>
         )}
       </section>
     </div>

@@ -37,7 +37,27 @@ export class World {
     this.events = [];
     this.nextId = 1;
 
-    this.player = { x: START_X, y: GROUND_Y - FEET, w: PLAYER_W, h: PLAYER_H, vx: 0, vy: 0, onGround: true, pedal: 0, spin: 0 };
+    this.player = {
+      x: START_X,
+      y: GROUND_Y - FEET,
+      w: PLAYER_W,
+      h: PLAYER_H,
+      vx: 0,
+      vy: 0,
+      onGround: true,
+      // анімація (див. bikeSprite.js)
+      pedal: 0, // кут шатунів
+      wheel: 0, // кут коліс
+      pitch: 0, // нахил велосипеда
+      crouch: 0, // просідання «амортизації» (пружина)
+      crouchV: 0,
+      pose: 'ride',
+      bob: 0,
+      sway: 0,
+      pedaling: false,
+      spin: 0,
+    };
+    this.rider = null; // райдер, що злетів з велосипеда при аварії
     this.camX = START_X - PLAYER_SCREEN_X;
     this.dir = 0; // -1 гальмо, 0, 1 розгін
     this.jumpHeld = false;
@@ -256,14 +276,14 @@ export class World {
       this.jumpBuffer = 0;
       this.jumps += 1;
       this.dustBurst(p.x + 6, p.y + FEET, 5);
+      p.crouchV -= 9; // відштовхування: тіло випрямляється
       if (this.mode !== 'demo') this.emit('jump');
     }
     if (!held && p.vy < -PHYSICS.jumpCut) p.vy = -PHYSICS.jumpCut;
 
     this.movePlayer(dt);
 
-    if (this.phase === 'crash') p.spin += dt * 9;
-    p.pedal += p.vx * dt * 0.09;
+    this.animatePlayer(dt, dir, target);
 
     // пил з-під заднього колеса
     const dust = this.location.dust;
@@ -307,12 +327,91 @@ export class World {
       if (!p.onGround) {
         if (p.vy > 200) this.dustBurst(p.x + p.w / 2, surface, 6);
         if (p.vy > 200 && this.mode !== 'demo') this.emit('land');
+        p.crouchV += p.vy * 0.09; // амортизація «з'їдає» удар
+        if (p.vy > 420) this.shake = Math.max(this.shake, 1.6);
       }
       p.vy = 0;
       p.onGround = true;
       if (this.slow <= 0 && this.slip <= 0) this.lastSafeX = p.x;
     } else {
       p.onGround = false;
+    }
+  }
+
+  // Анімація: каденс педалей, оберти коліс, пози, нахил і «амортизація».
+  animatePlayer(dt, dir, target) {
+    const p = this.player;
+    const riding = this.phase === 'ride' || this.phase === 'finish';
+    p.wheel += (p.vx * dt) / 4.9;
+    // педалюємо лише коли тягнемо вперед; накатом, у повітрі, при гальмуванні — шатуни стоять
+    p.pedaling = riding && p.onGround && dir >= 0 && this.slip <= 0 && target >= p.vx - 4 && p.vx > 5;
+    if (p.pedaling) p.pedal += (p.vx * dt) / (dir > 0 ? 9 : 11);
+    else if (!p.onGround) p.pedal += (Math.round(p.pedal / Math.PI) * Math.PI - p.pedal) * Math.min(1, dt * 8); // шатуни горизонтально в польоті
+
+    if (this.phase === 'crash' || this.phase === 'over') p.pose = 'crash';
+    else if (!p.onGround) p.pose = 'air';
+    else if (dir > 0 && riding) p.pose = 'stand';
+    else if ((dir < 0 || this.slip > 0) && riding) p.pose = 'tuck';
+    else p.pose = 'ride';
+
+    // підскок тулуба в такт педалям і хитання, коли стоїш на педалях
+    const k = p.pedaling ? 1 : 0;
+    p.bob = k * (p.pose === 'stand' ? 1 : 0.6) * (0.5 + 0.5 * Math.sin(p.pedal * 2));
+    p.sway = p.pose === 'stand' ? Math.sin(p.pedal) * 0.8 : 0;
+
+    // нахил: у польоті — за напрямком руху, на землі — рівно; при аварії — кидає через кермо
+    let pitchTarget = 0;
+    if (!p.onGround) pitchTarget = clamp(p.vy / 900, -0.32, 0.38);
+    if (this.phase === 'crash') {
+      p.spin += dt * (p.onGround ? 2 : 7);
+      pitchTarget = Math.min(p.spin, Math.PI * 0.55);
+      p.pitch = pitchTarget;
+    } else {
+      p.pitch += (pitchTarget - p.pitch) * Math.min(1, dt * (p.onGround ? 18 : 6));
+    }
+
+    // пружина «амортизації»: просідає при приземленні, випрямляється при стрибку
+    const accel = -260 * p.crouch - 14 * p.crouchV;
+    p.crouchV += accel * dt;
+    p.crouch = clamp(p.crouch + p.crouchV * dt, -1.2, 3);
+
+    // пил і «вереск» шин при різкому гальмуванні
+    if (p.onGround && dir < 0 && p.vx > 70 && riding && this.location.dust && this.fx.chance(dt * 30)) {
+      this.addParticle(p.x + 5, p.y + FEET - 1, this.fx.range(-10, 30), -this.fx.range(10, 35), {
+        color: this.fx.pick(this.location.dust),
+        life: 0.45,
+        g: 80,
+        size: 2,
+      });
+    }
+
+    if (this.rider) this.updateRider(dt);
+  }
+
+  // Аварія: райдер злітає з велосипеда, падає, ковзає землею.
+  launchRider() {
+    const p = this.player;
+    this.rider = { x: p.x + 9, y: p.y, vx: Math.max(60, p.vx * 0.8 + 50), vy: -230, rot: 0, rotV: 9, onGround: false };
+  }
+
+  updateRider(dt) {
+    const r = this.rider;
+    r.vy = Math.min(r.vy + PHYSICS.gravity * dt, 620);
+    r.x += r.vx * dt;
+    r.y += r.vy * dt;
+    r.rot += r.rotV * dt;
+    const ground = this.surfaceUnder(r.x + 9, r.x + 15);
+    if (ground !== null && r.y + 14 >= ground && r.vy > 0 && r.y + 14 - r.vy * dt <= ground + 4) {
+      r.y = ground - 14;
+      if (Math.abs(r.vy) > 120) this.dustBurst(r.x + 12, ground, 6);
+      r.vy = -r.vy * 0.3;
+      r.vx *= 0.6;
+      r.rotV *= 0.5;
+      r.onGround = Math.abs(r.vy) < 30;
+    }
+    if (r.onGround) {
+      r.vx *= Math.exp(-dt * 4);
+      r.rotV *= Math.exp(-dt * 6);
     }
   }
 
@@ -353,7 +452,9 @@ export class World {
   updateCamera(dt) {
     const p = this.player;
     if (this.phase === 'crash' || this.phase === 'over') return;
-    const target = p.x - PLAYER_SCREEN_X;
+    // камера трохи «дивиться вперед» — що швидше їдеш, то більше видно попереду
+    const look = clamp((p.vx - 90) * 0.22, -6, 18);
+    const target = p.x - PLAYER_SCREEN_X + look;
     this.camX += (target - this.camX) * Math.min(1, dt * 10);
   }
 
@@ -448,6 +549,7 @@ export class World {
       this.setPhase('crash');
       p.vy = -220;
       this.shake = 8;
+      this.launchRider();
       this.result = this.makeResult(false);
       this.emit('crash');
     }

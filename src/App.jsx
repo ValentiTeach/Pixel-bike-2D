@@ -6,6 +6,7 @@ import HowTo from './components/HowTo.jsx';
 import Settings from './components/Settings.jsx';
 import GameScreen from './components/GameScreen.jsx';
 import SidePanel from './components/SidePanel.jsx';
+import Icon from './components/Icon.jsx';
 import { useSave } from './hooks/useSave.js';
 import { useFrameScale } from './hooks/useFrameScale.js';
 import { VIEW_W, VIEW_H } from './game/constants.js';
@@ -87,7 +88,9 @@ export default function App() {
         )}
       </main>
       {sides && <SidePanel side="right" />}
-      <p className="rotate-hint">Поверни телефон горизонтально — так гра більша і зручніша</p>
+      <p className="rotate-hint">
+        <Icon name="rotate" /> Поверни телефон горизонтально — так гра більша і зручніша
+      </p>
     </div>
   );
 }

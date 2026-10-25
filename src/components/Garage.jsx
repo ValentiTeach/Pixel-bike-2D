@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import PxIcon from './PxIcon.jsx';
-import PixelButton from './PixelButton.jsx';
+import Button from './Button.jsx';
+import Icon from './Icon.jsx';
 import TopBar from './TopBar.jsx';
-import { BikeIcon, SpriteIcon } from './SpriteIcon.jsx';
+import { BikeIcon } from './SpriteIcon.jsx';
 import { SKINS, getSkin } from '../game/skins.js';
 import { buySkin } from '../game/storage.js';
 import { audio } from '../game/audio.js';
 
-// Анімований велосипедист: крутить педалі на «біговій доріжці» з травою.
+// Анімований велосипедист: крутить педалі на «біговій доріжці».
 function BikePreview({ skin }) {
   const [t, setT] = useState(0);
   useEffect(() => {
@@ -45,58 +45,59 @@ export default function Garage({ save, setSave, onBack }) {
     }
     audio.play('buy');
     setSave(next);
-    setMessage(`Куплено: ${skin.name}!`);
+    setMessage(`Куплено: ${skin.name}`);
   };
 
   return (
     <div className="screen garage">
       <TopBar title="Гараж" onBack={onBack} coins={save.coins} />
       <div className="garage__body">
-      <div className="garage__left">
-      <BikePreview skin={skin} />
-      <div className="garage__grid" role="listbox" aria-label="Скіни">
-        {SKINS.map((s) => {
-          const has = save.ownedSkins.includes(s.id);
-          return (
-            <button
-              type="button"
-              role="option"
-              aria-selected={selected === s.id}
-              key={s.id}
-              className={`skin ${selected === s.id ? 'is-selected' : ''} ${has ? '' : 'is-locked'}`}
-              onClick={() => {
-                audio.play('click');
-                setSelected(s.id);
-                setMessage('');
-              }}
-            >
-              <BikeIcon skin={s} scale={1} />
-              <span className="skin__label">{save.skin === s.id ? <PxIcon name="check" /> : has ? 'є' : s.price}</span>
-            </button>
-          );
-        })}
-      </div>
-      </div>
-      <div className="garage__info px-box">
-        <h3 className="garage__name">{skin.name}</h3>
-        <p className="garage__status">
-          {equipped ? 'Зараз на тобі' : owned ? 'У гаражі' : (
-            <>
-              Ціна: <SpriteIcon name="coin" /> {skin.price}
-            </>
-          )}
-        </p>
-        <PixelButton variant={owned ? 'default' : 'primary'} onClick={action} disabled={equipped || (!owned && !canAfford)}>
-          {equipped ? (
-            <>
-              <PxIcon name="check" /> Обрано
-            </>
-          ) : owned ? 'Обрати' : canAfford ? 'Купити' : 'Замало монет'}
-        </PixelButton>
-        <p className="garage__msg" aria-live="polite">
-          {message || 'Збирай монети на трасах, щоб купувати нові скіни.'}
-        </p>
-      </div>
+        <div className="garage__left">
+          <BikePreview skin={skin} />
+          <div className="garage__grid" role="listbox" aria-label="Скіни">
+            {SKINS.map((s) => {
+              const has = save.ownedSkins.includes(s.id);
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected === s.id}
+                  key={s.id}
+                  className={`skin ${selected === s.id ? 'is-selected' : ''} ${has ? '' : 'is-locked'} ${save.skin === s.id ? 'is-equipped' : ''}`}
+                  onClick={() => {
+                    audio.play('click');
+                    setSelected(s.id);
+                    setMessage('');
+                  }}
+                >
+                  <span className="skin__swatch" style={{ background: s.palette.j ?? '#e8383d' }} />
+                  <span className="skin__label">{has ? <Icon name="check" /> : s.price}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="garage__info glass">
+          <span className="eyebrow">Скін</span>
+          <h3 className="garage__name">{skin.name}</h3>
+          <p className="garage__status">
+            {equipped ? (
+              'Зараз на тобі'
+            ) : owned ? (
+              'У гаражі'
+            ) : (
+              <>
+                <Icon name="coin" className="c-accent" /> {skin.price}
+              </>
+            )}
+          </p>
+          <Button variant={owned ? 'secondary' : 'primary'} icon={equipped ? 'check' : owned ? null : 'bag'} onClick={action} disabled={equipped || (!owned && !canAfford)}>
+            {equipped ? 'Обрано' : owned ? 'Обрати' : canAfford ? 'Купити' : 'Замало монет'}
+          </Button>
+          <p className="garage__msg" aria-live="polite">
+            {message || 'Збирай монети на трасах, щоб відкривати нові скіни.'}
+          </p>
+        </div>
       </div>
     </div>
   );

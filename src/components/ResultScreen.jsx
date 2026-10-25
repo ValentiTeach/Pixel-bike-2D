@@ -1,8 +1,7 @@
 import { useRef } from 'react';
-import PxIcon from './PxIcon.jsx';
-import PixelButton from './PixelButton.jsx';
+import Button from './Button.jsx';
+import Icon from './Icon.jsx';
 import Stars from './Stars.jsx';
-import { SpriteIcon } from './SpriteIcon.jsx';
 import { useMenuKeys } from '../hooks/useMenuKeys.js';
 import { LOCATIONS, getLocation, locationIndex } from '../game/locations.js';
 
@@ -12,55 +11,79 @@ export default function ResultScreen({ summary, coinsTotal, onRetry, onNext, onE
   const { result, newBest, unlocked } = summary;
   const level = result.mode === 'level';
   const next = LOCATIONS[locationIndex(result.locationId) + 1];
-  const title = result.completed ? 'Фініш!' : level ? 'Аварія!' : 'Заїзд завершено';
+  const title = result.completed ? 'Фініш' : level ? 'Аварія' : 'Заїзд завершено';
+  const showNext = level && result.completed && next;
 
   return (
-    <div className="overlay overlay--result">
-      <div className={`overlay__panel px-box ${result.completed ? 'is-win' : 'is-lose'}`} ref={ref}>
-        <h2 className="overlay__title">{title}</h2>
-        {level && <Stars count={result.stars} scale={2} animate />}
+    <div className="overlay">
+      <div className={`modal glass modal--result ${result.completed ? 'is-win' : 'is-lose'}`} ref={ref}>
+        <span className="eyebrow">{getLocation(result.locationId).name}</span>
+        <h2 className="modal__title">{title}</h2>
+        {level && <Stars count={result.stars} size="1.8em" animate />}
 
-        <dl className="result__stats">
+        <dl className="metrics">
           <div>
-            <dt>Дистанція</dt>
+            <dt>
+              <Icon name="route" /> Дистанція
+            </dt>
             <dd>
               {result.distanceM}
-              {level ? ` / ${result.lengthM}` : ''} м
+              <small> {level ? `/ ${result.lengthM} ` : ''}м</small>
             </dd>
           </div>
           <div>
-            <dt>Монети</dt>
+            <dt>
+              <Icon name="coin" /> Монети
+            </dt>
             <dd>
-              <SpriteIcon name="coin" /> +{result.coins} <small>({coinsTotal})</small>
+              +{result.coins}
+              <small> · {coinsTotal}</small>
             </dd>
           </div>
           <div>
-            <dt>Час</dt>
-            <dd>{result.time} с</dd>
+            <dt>
+              <Icon name="clock" /> Час
+            </dt>
+            <dd>
+              {result.time}
+              <small> с</small>
+            </dd>
           </div>
           <div>
-            <dt>Зіткнення</dt>
+            <dt>
+              <Icon name="zap" /> Удари
+            </dt>
             <dd>{result.hits}</dd>
           </div>
         </dl>
 
-        {newBest && (
-          <p className="badge badge--gold">
-            <SpriteIcon name="star" /> Новий рекорд!
-          </p>
+        {(newBest || unlocked) && (
+          <div className="badges">
+            {newBest && (
+              <span className="badge badge--accent">
+                <Icon name="trophy" /> Новий рекорд
+              </span>
+            )}
+            {unlocked && (
+              <span className="badge badge--success">
+                <Icon name="lock" /> Відкрито: {getLocation(unlocked).name}
+              </span>
+            )}
+          </div>
         )}
-        {unlocked && <p className="badge badge--green">Відкрито: {getLocation(unlocked).name}!</p>}
 
-        <div className="overlay__buttons">
-          {level && result.completed && next && (
-            <PixelButton variant="primary" onClick={() => onNext(next.id)}>
-              Далі: {next.name} <PxIcon name="right" />
-            </PixelButton>
+        <div className="modal__buttons modal__buttons--row">
+          {showNext && (
+            <Button variant="primary" iconRight="arrowRight" onClick={() => onNext(next.id)}>
+              {next.name}
+            </Button>
           )}
-          <PixelButton variant={result.completed && next && level ? 'default' : 'primary'} onClick={onRetry}>
-            <PxIcon name="retry" /> Ще раз
-          </PixelButton>
-          <PixelButton onClick={onExit}>Локації</PixelButton>
+          <Button variant={showNext ? 'secondary' : 'primary'} icon="retry" onClick={onRetry}>
+            Ще раз
+          </Button>
+          <Button variant="ghost" onClick={onExit}>
+            Локації
+          </Button>
         </div>
       </div>
     </div>

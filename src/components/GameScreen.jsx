@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import PxIcon from './PxIcon.jsx';
+import Icon from './Icon.jsx';
 import GameCanvas from './GameCanvas.jsx';
 import HUD from './HUD.jsx';
 import TouchControls from './TouchControls.jsx';
@@ -63,23 +63,25 @@ export default function GameScreen({ run, save, setSave, onRunEnd, onRestart, on
 
       {phase === 'countdown' && !paused && (
         <div className="countdown">
+          <span className="eyebrow">{run.mode === 'endless' ? 'Нескінченний режим' : `Траса · ${loc.lengthM} м`}</span>
           <p className="countdown__title">{loc.name}</p>
-          <p className="countdown__mode">{run.mode === 'endless' ? (
-              <>
-                <PxIcon name="infinity" /> Нескінченний режим
-              </>
-            ) : (
-              `Траса ${loc.lengthM} м`
-            )}</p>
           <p key={hud.countdown} className="countdown__num">
             {hud.countdown}
           </p>
           <p className="countdown__hint">
-            Пробіл / <PxIcon name="up" /> — стрибок · <PxIcon name="arrowLeft" /> <PxIcon name="arrowRight" /> — швидкість
+            <kbd className="key">Пробіл</kbd> стрибок
+            <span className="sep" />
+            <kbd className="key">
+              <Icon name="arrowLeft" size="1em" />
+            </kbd>
+            <kbd className="key">
+              <Icon name="arrowRight" size="1em" />
+            </kbd>{' '}
+            швидкість
           </p>
         </div>
       )}
-      {go && !paused && <p className="countdown__go">Вперед!</p>}
+      {go && !paused && <p className="countdown__go">Вперед</p>}
 
       {paused && !summary && (
         <PauseMenu save={save} setSave={setSave} onResume={() => setPaused(false)} onRestart={onRestart} onExit={onExit} />

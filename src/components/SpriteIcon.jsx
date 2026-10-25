@@ -3,9 +3,11 @@ import { getSprite, getBikeFrame, spriteSize } from '../game/sprites.js';
 import { PLAYER_W, PLAYER_H } from '../game/constants.js';
 
 // Малює ігровий спрайт у маленькому canvas; розмір у CSS кратний ігровому пікселю (--u).
-export function SpriteIcon({ name, frame = 0, scale = 1, className = '', title }) {
+export function SpriteIcon({ name, frame = 0, scale: scaleProp = 1, box, className = '', title }) {
   const ref = useRef(null);
   const { w, h } = spriteSize(name);
+  // box — вписати спрайт у квадрат box×box ігрових пікселів (для іконок у списках)
+  const scale = box ? Math.min(box / w, box / h) : scaleProp;
   useEffect(() => {
     const c = ref.current;
     const ctx = c.getContext('2d');

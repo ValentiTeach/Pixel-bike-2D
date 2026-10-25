@@ -1,46 +1,29 @@
-// Бічні панелі для широких екранів (на телефонах приховані CSS-ом).
-import PxIcon from './PxIcon.jsx';
+// Бічні панелі для широких екранів (показуються, лише коли поруч із грою є місце).
 export default function SidePanel({ side }) {
   if (side === 'left') {
     return (
-      <aside className="side side--left">
+      <aside className="side">
         <h3>Керування</h3>
-        <p>
-          <kbd>Пробіл</kbd> <kbd>↑</kbd> <kbd>W</kbd>
-          <br />
-          стрибок (тримай — вище)
-        </p>
-        <p>
-          <kbd>
-            <PxIcon name="arrowLeft" />
-          </kbd>{' '}
-          <kbd>
-            <PxIcon name="arrowRight" />
-          </kbd>{' '}
-          / <kbd>A</kbd> <kbd>D</kbd>
-          <br />
-          гальмо / розгін
-        </p>
-        <p>
-          <kbd>Esc</kbd> / <kbd>P</kbd>
-          <br />
-          пауза
-        </p>
-        <p>
-          <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd>
-          <br />
-          меню
-        </p>
+        <dl>
+          <dt>Пробіл · ↑ · W</dt>
+          <dd>стрибок, тримай — вище</dd>
+          <dt>← · A</dt>
+          <dd>гальмо</dd>
+          <dt>→ · D</dt>
+          <dd>розгін</dd>
+          <dt>Esc · P</dt>
+          <dd>пауза</dd>
+        </dl>
       </aside>
     );
   }
   return (
-    <aside className="side side--right">
+    <aside className="side">
       <h3>Поради</h3>
       <ul>
         <li>Дуга з монет показує, де стрибати.</li>
         <li>Під птахами не стрибай — проїжджай знизу.</li>
-        <li>Перед довгою ямою розженися (→).</li>
+        <li>Перед довгою ямою розженися.</li>
         <li>Уступ зупиняє — стрибай заздалегідь.</li>
         <li>Щит розбиває одну перешкоду.</li>
       </ul>

@@ -1,6 +1,5 @@
 import { useRef } from 'react';
-import PxIcon from './PxIcon.jsx';
-import PixelButton from './PixelButton.jsx';
+import Button from './Button.jsx';
 import { Toggle } from './Settings.jsx';
 import { useMenuKeys } from '../hooks/useMenuKeys.js';
 
@@ -11,18 +10,23 @@ export default function PauseMenu({ save, setSave, onResume, onRestart, onExit }
   const set = (patch) => setSave({ ...save, settings: { ...s, ...patch } });
   return (
     <div className="overlay">
-      <div className="overlay__panel px-box" ref={ref}>
-        <h2 className="overlay__title">Пауза</h2>
-        <PixelButton variant="primary" onClick={onResume}>
-          <PxIcon name="right" /> Продовжити
-        </PixelButton>
-        <PixelButton onClick={onRestart}>
-          <PxIcon name="retry" /> Спочатку
-        </PixelButton>
-        <PixelButton onClick={onExit}>Локації</PixelButton>
-        <div className="overlay__toggles">
-          <Toggle label="Музика" value={s.music} onChange={(v) => set({ music: v })} />
-          <Toggle label="Ефекти" value={s.sfx} onChange={(v) => set({ sfx: v })} />
+      <div className="modal glass" ref={ref}>
+        <span className="eyebrow">Гру призупинено</span>
+        <h2 className="modal__title">Пауза</h2>
+        <div className="modal__buttons">
+          <Button variant="primary" icon="play" onClick={onResume}>
+            Продовжити
+          </Button>
+          <Button icon="retry" onClick={onRestart}>
+            Спочатку
+          </Button>
+          <Button variant="ghost" icon="chevronLeft" onClick={onExit}>
+            До локацій
+          </Button>
+        </div>
+        <div className="modal__toggles">
+          <Toggle icon="music" label="Музика" value={s.music} onChange={(v) => set({ music: v })} />
+          <Toggle icon="volume" label="Ефекти" value={s.sfx} onChange={(v) => set({ sfx: v })} />
         </div>
       </div>
     </div>
