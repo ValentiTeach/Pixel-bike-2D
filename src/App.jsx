@@ -16,7 +16,8 @@ export default function App() {
   const [save, setSave] = useSave();
   const [screen, setScreen] = useState('menu');
   const [run, setRun] = useState(null);
-  const u = useFrameScale();
+  const { u, room } = useFrameScale();
+  const sides = room >= 480;
 
   // актуальний сейв для синхронних обчислень у колбеках рушія
   const saveRef = useRef(save);
@@ -65,7 +66,7 @@ export default function App() {
 
   return (
     <div className="page" style={{ '--u': `${u}px` }}>
-      <SidePanel side="left" />
+      {sides && <SidePanel side="left" />}
       <main className="frame" style={{ width: VIEW_W * u, height: VIEW_H * u }}>
         {screen === 'menu' && <MainMenu save={save} onNavigate={setScreen} />}
         {screen === 'select' && <LevelSelect save={save} onBack={toMenu} onStart={startRun} />}
@@ -85,7 +86,8 @@ export default function App() {
           />
         )}
       </main>
-      <SidePanel side="right" />
+      {sides && <SidePanel side="right" />}
+      <p className="rotate-hint">Поверни телефон горизонтально — так гра більша і зручніша</p>
     </div>
   );
 }

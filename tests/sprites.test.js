@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { MATRIX_SPRITES } from '../src/game/spriteData.js';
 import { PROCEDURAL_SPRITES } from '../src/game/proceduralSprites.js';
-import { parseMatrix, spriteSize, hasSprite, bikeRows } from '../src/game/sprites.js';
+import { parseMatrix, spriteSize, hasSprite } from '../src/game/sprites.js';
+import { drawBike, BIKE_FRAMES } from '../src/game/bikeSprite.js';
+import { SKINS } from '../src/game/skins.js';
 import { ENTITY_TYPES } from '../src/game/entities.js';
 import { LOCATIONS } from '../src/game/locations.js';
 import { PLAYER_W, PLAYER_H } from '../src/game/constants.js';
@@ -37,22 +39,26 @@ describe('спрайти', () => {
       expect(new Set(sizes).size, id).toBe(1);
     }
     for (const loc of LOCATIONS) {
-      for (const tr of loc.decor) for (const it of tr.items) expect(hasSprite(it.sprite), `${loc.id} → ${it.sprite}`).toBe(true);
-      for (const o of [...loc.obstacles, ...loc.hazards]) expect(ENTITY_TYPES[o.type], `${loc.id} → ${o.type}`).toBeDefined();
+      for (const it of loc.props) expect(hasSprite(it.sprite), `${loc.id} → ${it.sprite}`).toBe(true);
+      for (const o of [...loc.obstacles, ...loc.movers, ...loc.flyers, ...loc.hazards]) {
+        expect(ENTITY_TYPES[o.type], `${loc.id} → ${o.type}`).toBeDefined();
+      }
     }
   });
 
-  it('велосипедист має розмір гравця і зберігає ширину при нахилі', () => {
-    expect(spriteSize('bike')).toMatchObject({ w: PLAYER_W, h: PLAYER_H });
-    for (const lean of [-1, 0, 1]) {
-      for (const frame of [0, 1]) {
-        const rows = bikeRows(frame, lean);
-        expect(rows).toHaveLength(PLAYER_H);
-        for (const r of rows) expect(r).toHaveLength(PLAYER_W);
+  it('велосипедист малюється в межах спрайта гравця в усіх кадрах і скінах', () => {
+    for (const skin of SKINS) {
+      for (let f = 0; f < BIKE_FRAMES; f++) {
+        const pixels = [];
+        const ctx = { fillStyle: '', fillRect: (x, y, w, h) => pixels.push({ x, y, w, h, c: ctx.fillStyle }) };
+        drawBike(ctx, skin.palette, f);
+        expect(pixels.length).toBeGreaterThan(80);
+        for (const p of pixels) {
+          expect(p.x >= 0 && p.y >= 0 && p.x + p.w <= PLAYER_W && p.y + p.h <= PLAYER_H, `${skin.id}#${f}`).toBe(true);
+          expect(p.c, `${skin.id}#${f}`).toMatch(/^(#|rgb)/);
+        }
       }
     }
-    expect(bikeRows(0, -1)[0]).toBe('....t......');
-    expect(bikeRows(0, 1)[0]).toBe('......t....');
   });
 
   it('кадри обертання квадратних спрайтів', () => {

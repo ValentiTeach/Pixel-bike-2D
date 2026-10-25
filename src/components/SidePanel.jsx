@@ -6,6 +6,11 @@ export default function SidePanel({ side }) {
       <aside className="side side--left">
         <h3>Керування</h3>
         <p>
+          <kbd>Пробіл</kbd> <kbd>↑</kbd> <kbd>W</kbd>
+          <br />
+          стрибок (тримай — вище)
+        </p>
+        <p>
           <kbd>
             <PxIcon name="arrowLeft" />
           </kbd>{' '}
@@ -14,7 +19,7 @@ export default function SidePanel({ side }) {
           </kbd>{' '}
           / <kbd>A</kbd> <kbd>D</kbd>
           <br />
-          рух вліво-вправо
+          гальмо / розгін
         </p>
         <p>
           <kbd>Esc</kbd> / <kbd>P</kbd>
@@ -33,9 +38,10 @@ export default function SidePanel({ side }) {
     <aside className="side side--right">
       <h3>Поради</h3>
       <ul>
-        <li>Ланцюжок монет завжди веде безпечним проходом.</li>
-        <li>Після удару ти кілька секунд невразливий — мерехтиш.</li>
-        <li>На льоду й олії гальмуй заздалегідь.</li>
+        <li>Дуга з монет показує, де стрибати.</li>
+        <li>Під птахами не стрибай — проїжджай знизу.</li>
+        <li>Перед довгою ямою розженися (→).</li>
+        <li>Уступ зупиняє — стрибай заздалегідь.</li>
         <li>Щит розбиває одну перешкоду.</li>
       </ul>
     </aside>

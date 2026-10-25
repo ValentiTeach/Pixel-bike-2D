@@ -3,21 +3,22 @@ import PxIcon from './PxIcon.jsx';
 
 const coarse = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
-// Дві невидимі сенсорні зони: ліва половина — вліво, права — вправо. Працює і мишею.
-export default function TouchControls({ onTouch, showHints }) {
-  const [active, setActive] = useState({ '-1': false, 1: false });
+// Сенсорні зони на весь екран: зліва — «гальмо» і «розгін», справа (більша частина) — «стрибок».
+// Працює і мишею: затисни кнопку миші в потрібній зоні.
+export default function TouchControls({ onTouch, onJump, showHints }) {
+  const [active, setActive] = useState({});
   const [hints] = useState(coarse);
 
-  const zone = (side) => {
+  const zone = (id, press) => {
     const release = () => {
-      onTouch(side, false);
-      setActive((a) => ({ ...a, [side]: false }));
+      press(false);
+      setActive((a) => ({ ...a, [id]: false }));
     };
     return {
       onPointerDown: (e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId);
-        onTouch(side, true);
-        setActive((a) => ({ ...a, [side]: true }));
+        press(true);
+        setActive((a) => ({ ...a, [id]: true }));
       },
       onPointerUp: release,
       onPointerCancel: release,
@@ -26,13 +27,29 @@ export default function TouchControls({ onTouch, showHints }) {
     };
   };
 
+  const show = hints && showHints;
   return (
     <div className="touch">
-      <div className={`touch__zone touch__zone--left ${active[-1] ? 'is-active' : ''}`} {...zone(-1)}>
-        {hints && showHints && <PxIcon name="left" size={3} className="touch__arrow" />}
+      <div className={`touch__zone touch__zone--brake ${active.brake ? 'is-active' : ''}`} {...zone('brake', (p) => onTouch(-1, p))}>
+        {show && (
+          <span className="touch__btn">
+            <PxIcon name="left" size={2} />
+          </span>
+        )}
       </div>
-      <div className={`touch__zone touch__zone--right ${active[1] ? 'is-active' : ''}`} {...zone(1)}>
-        {hints && showHints && <PxIcon name="right" size={3} className="touch__arrow" />}
+      <div className={`touch__zone touch__zone--boost ${active.boost ? 'is-active' : ''}`} {...zone('boost', (p) => onTouch(1, p))}>
+        {show && (
+          <span className="touch__btn">
+            <PxIcon name="right" size={2} />
+          </span>
+        )}
+      </div>
+      <div className={`touch__zone touch__zone--jump ${active.jump ? 'is-active' : ''}`} {...zone('jump', onJump)}>
+        {show && (
+          <span className="touch__btn touch__btn--jump">
+            <PxIcon name="up" size={2} /> Стрибок
+          </span>
+        )}
       </div>
     </div>
   );

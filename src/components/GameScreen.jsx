@@ -25,9 +25,10 @@ export default function GameScreen({ run, save, setSave, onRunEnd, onRestart, on
 
   useEffect(() => {
     const onKey = (e) => {
+      if (e.repeat) return;
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (!summary) setPaused((p) => !p);
-      } else if (e.code === 'Enter' && summary && document.activeElement?.tagName !== 'BUTTON') {
+      } else if ((e.code === 'Enter' || e.code === 'Space') && summary && document.activeElement?.tagName !== 'BUTTON') {
         onRestart();
       }
     };
@@ -44,6 +45,7 @@ export default function GameScreen({ run, save, setSave, onRunEnd, onRestart, on
 
   const handleEnd = useCallback((result) => setSummary(onRunEnd(result)), [onRunEnd]);
   const handleTouch = useCallback((side, pressed) => engineRef.current?.setTouch(side, pressed), []);
+  const handleJump = useCallback((pressed) => engineRef.current?.setJump(pressed), []);
 
   return (
     <div className={`screen game ${paused ? 'is-paused' : ''}`}>
@@ -56,7 +58,7 @@ export default function GameScreen({ run, save, setSave, onRunEnd, onRestart, on
         onHud={setHud}
         onEnd={handleEnd}
       />
-      {!summary && !paused && <TouchControls onTouch={handleTouch} showHints={save.settings.touchHints} />}
+      {!summary && !paused && <TouchControls onTouch={handleTouch} onJump={handleJump} showHints={save.settings.touchHints} />}
       {hud && !summary && <HUD hud={hud} mode={run.mode} onPause={() => setPaused(true)} />}
 
       {phase === 'countdown' && !paused && (
@@ -73,7 +75,7 @@ export default function GameScreen({ run, save, setSave, onRunEnd, onRestart, on
             {hud.countdown}
           </p>
           <p className="countdown__hint">
-            <PxIcon name="arrowLeft" /> <PxIcon name="arrowRight" /> / A D
+            Пробіл / <PxIcon name="up" /> — стрибок · <PxIcon name="arrowLeft" /> <PxIcon name="arrowRight" /> — швидкість
           </p>
         </div>
       )}

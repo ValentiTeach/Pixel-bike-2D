@@ -31,28 +31,6 @@ function forEllipse(w, h, rng, wobble, cb) {
   }
 }
 
-// Пляма-калюжа/багно/лід: край, основа, відблиски.
-function blob({ w, h, edge, base, light, sparkle = [], wobble = 0.25, lines = 0 }) {
-  return {
-    w,
-    h,
-    draw(ctx, rng) {
-      forEllipse(w, h, rng, wobble, (x, y, isEdge, nx, ny) => {
-        let c = base;
-        if (isEdge) c = edge;
-        else if (nx < -0.1 && ny < -0.1 && rng.chance(0.35)) c = light;
-        else if (sparkle.length && rng.chance(0.06)) c = rng.pick(sparkle);
-        px(ctx, x, y, c);
-      });
-      for (let i = 0; i < lines; i++) {
-        const ly = Math.round(h * (0.3 + 0.4 * rng.next()));
-        const lx = Math.round(w * (0.25 + 0.3 * rng.next()));
-        px(ctx, lx, ly, light, Math.max(2, Math.round(w * 0.25)), 1);
-      }
-    },
-  };
-}
-
 // Крона з кількох «клубків» зі світлом зліва-згори і тінню справа-знизу.
 function canopy(ctx, rng, ox, oy, w, h, colors, clumps = 5) {
   const [outline, dark, mid, light, hi] = colors;
@@ -92,80 +70,79 @@ function canopy(ctx, rng, ox, oy, w, h, colors, clumps = 5) {
   }
 }
 
-function car(body, shade, light, roof, { taxi = false, night = false } = {}) {
+function carSide(body, shade, light, { taxi = false, night = false } = {}) {
+  // авто збоку, фарами вліво — назустріч велосипедисту
   return {
-    w: 16,
-    h: 28,
+    w: 30,
+    h: 16,
     draw(ctx) {
-      const tire = '#15141c';
-      // колеса
-      px(ctx, 0, 4, tire, 2, 5);
-      px(ctx, 14, 4, tire, 2, 5);
-      px(ctx, 0, 19, tire, 2, 5);
-      px(ctx, 14, 19, tire, 2, 5);
-      // корпус із заокругленими кутами
-      px(ctx, 2, 0, body, 12, 1);
-      px(ctx, 1, 1, body, 14, 26);
-      px(ctx, 2, 27, body, 12, 1);
-      px(ctx, 1, 2, light, 1, 24);
-      px(ctx, 14, 2, shade, 1, 24);
-      // фари і стопи
-      const head = night ? '#fffbd0' : '#f6f2c8';
-      px(ctx, 3, 0, head, 2, 1);
-      px(ctx, 11, 0, head, 2, 1);
-      px(ctx, 3, 27, '#ff3b3b', 2, 1);
-      px(ctx, 11, 27, '#ff3b3b', 2, 1);
-      // капот: лінії
-      px(ctx, 4, 3, shade, 8, 1);
-      // лобове скло
-      px(ctx, 3, 8, '#2a3a5a', 10, 4);
-      px(ctx, 4, 8, '#9fd4ff', 8, 3);
-      px(ctx, 4, 8, '#e6f6ff', 2, 1);
-      // дзеркала
-      px(ctx, 0, 9, body, 1, 2);
-      px(ctx, 15, 9, shade, 1, 2);
-      // дах
-      px(ctx, 3, 12, roof, 10, 7);
-      px(ctx, 3, 12, light, 10, 1);
+      // кабіна
+      px(ctx, 9, 1, body, 13, 1);
+      px(ctx, 8, 2, body, 15, 4);
+      px(ctx, 10, 2, '#2a3a5a', 5, 3);
+      px(ctx, 16, 2, '#2a3a5a', 5, 3);
+      px(ctx, 10, 2, '#9fd4ff', 4, 2);
+      px(ctx, 16, 2, '#9fd4ff', 4, 2);
+      px(ctx, 10, 2, '#e6f6ff', 1, 1);
       if (taxi) {
-        px(ctx, 5, 14, '#1d1b26', 6, 3);
-        px(ctx, 5, 14, '#ffffff', 1, 1);
-        px(ctx, 7, 14, '#ffffff', 1, 1);
-        px(ctx, 9, 14, '#ffffff', 1, 1);
-        px(ctx, 6, 15, '#ffffff', 1, 1);
-        px(ctx, 8, 15, '#ffffff', 1, 1);
-        px(ctx, 10, 15, '#ffffff', 1, 1);
+        px(ctx, 13, 0, '#1d1b26', 5, 1);
+        px(ctx, 14, 0, '#ffffff', 1, 1);
+        px(ctx, 16, 0, '#ffffff', 1, 1);
       }
-      // заднє скло
-      px(ctx, 3, 19, '#2a3a5a', 10, 3);
-      px(ctx, 4, 19, '#6fa0d0', 8, 2);
-      // багажник
-      px(ctx, 4, 24, shade, 8, 1);
+      // кузов
+      px(ctx, 3, 5, body, 26, 1);
+      px(ctx, 1, 6, body, 28, 6);
+      px(ctx, 1, 6, light, 28, 1);
+      px(ctx, 1, 11, shade, 28, 1);
+      px(ctx, 15, 6, shade, 1, 5);
+      px(ctx, 17, 8, shade, 2, 1);
+      px(ctx, 0, 7, night ? '#fffbd0' : '#f6f2c8', 2, 2);
+      px(ctx, 28, 7, '#ff3b3b', 2, 2);
+      px(ctx, 0, 10, '#3a3a46', 3, 2);
+      px(ctx, 27, 10, '#3a3a46', 3, 2);
+      // колеса
+      for (const cx of [7, 23]) {
+        for (let y = -3; y <= 3; y++) {
+          for (let x = -3; x <= 3; x++) {
+            const d = Math.hypot(x, y);
+            if (d > 3.4) continue;
+            px(ctx, cx + x, 12 + y, d < 1.3 ? '#9aa3b5' : '#15141c');
+          }
+        }
+      }
     },
   };
 }
 
-function umbrella(a, b) {
+function umbrellaSide(a, b) {
   return {
-    w: 18,
-    h: 18,
+    w: 16,
+    h: 22,
     draw(ctx) {
-      const c = 8.5;
-      for (let y = 0; y < 18; y++) {
-        for (let x = 0; x < 18; x++) {
-          const dx = x - c;
-          const dy = y - c;
-          const d = Math.hypot(dx, dy);
-          if (d > 8.6) continue;
-          const ang = Math.atan2(dy, dx) + Math.PI;
-          const seg = Math.floor((ang / (Math.PI * 2)) * 8);
-          let col = seg % 2 ? a : b;
-          if (d > 7.6) col = '#2a2440';
-          else if (dx + dy < -6 && d > 5) col = '#ffffff';
-          px(ctx, x, y, col);
-        }
+      for (let y = 0; y < 6; y++) {
+        const half = Math.round(8 * Math.sqrt(1 - ((5 - y) / 6) ** 2)) || 1;
+        for (let x = 8 - half; x < 8 + half; x++) px(ctx, x, y, Math.floor(x / 4) % 2 ? a : b);
       }
-      px(ctx, 8, 8, '#2a2440', 2, 2);
+      px(ctx, 0, 5, '#2a2440', 16, 1);
+      px(ctx, 7, 6, '#d9d9e3', 2, 15);
+      px(ctx, 8, 6, '#9aa3b5', 1, 15);
+      px(ctx, 4, 21, '#5a5470', 8, 1);
+    },
+  };
+}
+
+// Тонка смуга на поверхні землі (калюжа, багно, лід…), вид збоку.
+function strip(w, { base, light, edge, sparkle = [] }) {
+  return {
+    w,
+    h: 5,
+    draw(ctx, rng) {
+      px(ctx, 3, 0, light, w - 6, 1);
+      px(ctx, 1, 1, base, w - 2, 3);
+      px(ctx, 2, 4, edge, w - 4, 1);
+      px(ctx, 0, 2, edge, 1, 1);
+      px(ctx, w - 1, 2, edge, 1, 1);
+      for (let i = 0; i < w / 4; i++) px(ctx, rng.int(2, w - 3), rng.int(1, 3), rng.chance(0.5) && sparkle.length ? rng.pick(sparkle) : light);
     },
   };
 }
@@ -263,64 +240,6 @@ function palm() {
   };
 }
 
-function building(h, { night = false } = {}) {
-  return {
-    w: 26,
-    h,
-    draw(ctx, rng) {
-      const roofs = night
-        ? ['#2a2640', '#252238', '#302a48']
-        : ['#8a7f9c', '#9c8a76', '#7f8f9c', '#a89a8a', '#8f9c86'];
-      const roof = rng.pick(roofs);
-      const border = night ? '#141220' : '#3a3448';
-      const edge = night ? '#3d3858' : '#c8c0d6';
-      px(ctx, 0, 0, border, 26, h);
-      px(ctx, 1, 1, roof, 24, h - 2);
-      px(ctx, 1, 1, edge, 24, 1);
-      px(ctx, 1, 1, edge, 1, h - 2);
-      // гравій/шум на даху
-      for (let i = 0; i < 40; i++) px(ctx, rng.int(2, 23), rng.int(2, h - 3), night ? '#36304e' : '#00000022');
-      // деталі
-      const items = rng.int(2, 4);
-      let y = 4;
-      for (let i = 0; i < items && y < h - 8; i++) {
-        const kind = rng.int(0, 3);
-        const x = rng.int(3, 14);
-        if (kind === 0) {
-          // кондиціонер
-          px(ctx, x, y, night ? '#4a4566' : '#d9d9e3', 7, 6);
-          px(ctx, x + 1, y + 1, night ? '#2a2640' : '#6a6a78', 5, 4);
-          px(ctx, x + 2, y + 2, night ? '#4a4566' : '#b0b0bc', 3, 2);
-          y += 9;
-        } else if (kind === 1) {
-          // світловий люк / вікно в даху
-          const lit = night && rng.chance(0.8);
-          px(ctx, x, y, border, 8, 6);
-          px(ctx, x + 1, y + 1, lit ? '#ffd76a' : '#6fa8d8', 6, 4);
-          px(ctx, x + 1, y + 1, lit ? '#fff3b0' : '#bfe6ff', 2, 1);
-          y += 9;
-        } else if (kind === 2) {
-          // сонячні панелі
-          px(ctx, x, y, '#1a2a5a', 10, 7);
-          for (let gx = 0; gx < 10; gx += 3) px(ctx, x + gx, y, '#4a6ab0', 1, 7);
-          px(ctx, x, y + 3, '#4a6ab0', 10, 1);
-          y += 10;
-        } else {
-          // бак для води
-          px(ctx, x + 1, y, '#5a4a3a', 6, 7);
-          px(ctx, x, y + 1, '#5a4a3a', 8, 5);
-          px(ctx, x + 2, y + 1, '#8a7a6a', 3, 4);
-          y += 10;
-        }
-      }
-      if (night) {
-        // червоний вогник антени
-        px(ctx, rng.int(4, 20), h - 5, '#ff3b5c', 2, 2);
-      }
-    },
-  };
-}
-
 function neon(colorA, colorB) {
   return {
     w: 5,
@@ -354,28 +273,16 @@ function dune() {
   };
 }
 
-function towel(a, b) {
-  return {
-    w: 12,
-    h: 18,
-    draw(ctx) {
-      for (let y = 0; y < 18; y++) px(ctx, 0, y, Math.floor(y / 3) % 2 ? a : b, 12, 1);
-      px(ctx, 0, 0, '#ffffff', 12, 1);
-      px(ctx, 0, 17, '#ffffff', 12, 1);
-    },
-  };
-}
-
 export const PROCEDURAL_SPRITES = {
-  // машини
-  car_red: car('#e0483f', '#9a2a24', '#ff8a7a', '#c83a32'),
-  car_blue: car('#3f7fe0', '#24509a', '#8ab8ff', '#3468c0'),
-  car_white: car('#e9e9f0', '#a0a0b4', '#ffffff', '#d0d0dc'),
-  car_taxi: car('#f2c230', '#a8801a', '#ffe68a', '#e0b020', { taxi: true }),
-  car_green: car('#3fb86a', '#257a44', '#8ae8a8', '#35a05c'),
-  car_night_purple: car('#7a4fe0', '#4a2a9a', '#b89aff', '#6a40c8', { night: true }),
-  car_night_teal: car('#2fb8a8', '#1a7a70', '#8af0e0', '#28a092', { night: true }),
-  car_night_dark: car('#4a4660', '#2a2640', '#7a7698', '#3d3a52', { night: true }),
+  // машини (вид збоку)
+  car_red: carSide('#e0483f', '#9a2a24', '#ff8a7a'),
+  car_blue: carSide('#3f7fe0', '#24509a', '#8ab8ff'),
+  car_white: carSide('#e9e9f0', '#a0a0b4', '#ffffff'),
+  car_taxi: carSide('#f2c230', '#a8801a', '#ffe68a', { taxi: true }),
+  car_green: carSide('#3fb86a', '#257a44', '#8ae8a8'),
+  car_night_purple: carSide('#7a4fe0', '#4a2a9a', '#b89aff', { night: true }),
+  car_night_teal: carSide('#2fb8a8', '#1a7a70', '#8af0e0', { night: true }),
+  car_night_dark: carSide('#4a4660', '#2a2640', '#7a7698', { night: true }),
 
   log: {
     w: 34,
@@ -428,10 +335,10 @@ export const PROCEDURAL_SPRITES = {
 
   barrier: {
     w: 26,
-    h: 9,
+    h: 12,
     draw(ctx) {
-      px(ctx, 2, 5, '#5a5a68', 2, 4);
-      px(ctx, 22, 5, '#5a5a68', 2, 4);
+      px(ctx, 2, 6, '#5a5a68', 2, 6);
+      px(ctx, 22, 6, '#5a5a68', 2, 6);
       px(ctx, 0, 1, '#2a2440', 26, 6);
       for (let x = 1; x < 25; x++) {
         for (let y = 2; y < 6; y++) {
@@ -442,38 +349,16 @@ export const PROCEDURAL_SPRITES = {
     },
   },
 
-  manhole: {
-    w: 12,
-    h: 8,
-    draw(ctx, rng) {
-      forEllipse(12, 8, rng, 0, (x, y, edge, nx, ny) => {
-        px(ctx, x, y, edge ? '#7a7a88' : ny < -0.3 ? '#08070c' : '#1a1820');
-      });
-    },
-  },
+  umbrella_red: umbrellaSide('#e8383d', '#ffffff'),
+  umbrella_blue: umbrellaSide('#3f7fe0', '#ffd23f'),
+  umbrella_green: umbrellaSide('#3fb86a', '#ffffff'),
 
-  pothole: {
-    w: 13,
-    h: 8,
-    draw(ctx, rng) {
-      forEllipse(13, 8, rng, 0.35, (x, y, edge, nx, ny) => {
-        let c = ny < -0.2 ? '#050408' : '#121018';
-        if (edge) c = rng.chance(0.5) ? '#3a3848' : '#2a2838';
-        px(ctx, x, y, c);
-      });
-    },
-  },
-
-  umbrella_red: umbrella('#e8383d', '#ffffff'),
-  umbrella_blue: umbrella('#3f7fe0', '#ffd23f'),
-  umbrella_green: umbrella('#3fb86a', '#ffffff'),
-
-  // небезпечні (але не смертельні) зони
-  puddle: blob({ w: 22, h: 11, edge: '#2f5fa0', base: '#3f78c8', light: '#8ab8ff', lines: 2 }),
-  mud: blob({ w: 24, h: 12, edge: '#3a2412', base: '#5a3a1e', light: '#7a5230', sparkle: ['#6b4628'], lines: 1 }),
-  sandpit: blob({ w: 26, h: 12, edge: '#c9a060', base: '#f2d8a0', light: '#fff0c8', sparkle: ['#d9b878'], lines: 3, wobble: 0.3 }),
-  ice: blob({ w: 26, h: 13, edge: '#7ac0e8', base: '#bfe9ff', light: '#ffffff', sparkle: ['#ffffff'], lines: 3, wobble: 0.35 }),
-  oil: blob({ w: 20, h: 11, edge: '#05040a', base: '#0e0c14', light: '#2a2440', sparkle: ['#7a4fe0', '#2fb8a8', '#e0b84f'], wobble: 0.4 }),
+  // небезпечні (але не смертельні) смуги на землі
+  puddle: strip(26, { base: '#3f78c8', light: '#8ab8ff', edge: '#2f5fa0', sparkle: ['#ffffff'] }),
+  mud: strip(26, { base: '#5a3a1e', light: '#7a5230', edge: '#3a2412' }),
+  sandpit: strip(28, { base: '#f2d8a0', light: '#fff0c8', edge: '#c9a060', sparkle: ['#d9b878'] }),
+  ice: strip(30, { base: '#bfe9ff', light: '#ffffff', edge: '#7ac0e8', sparkle: ['#ffffff'] }),
+  oil: strip(24, { base: '#0e0c14', light: '#2a2440', edge: '#05040a', sparkle: ['#7a4fe0', '#2fb8a8', '#e0b84f'] }),
 
   // декор
   tree0: tree(['#14361a', '#1f4d24', '#2f6b2a', '#3f8a3a', '#5fae4a']),
@@ -492,43 +377,44 @@ export const PROCEDURAL_SPRITES = {
   palm0: palm(),
   palm1: palm(),
   palm2: palm(),
-  building0: building(44),
-  building1: building(52),
-  building2: building(38),
-  building3: building(58),
-  buildingNight0: building(44, { night: true }),
-  buildingNight1: building(54, { night: true }),
-  buildingNight2: building(40, { night: true }),
-  lamp: {
-    w: 5,
-    h: 5,
+  lampPost: {
+    w: 8,
+    h: 34,
     draw(ctx) {
-      px(ctx, 1, 0, '#3a3a46', 3, 5);
-      px(ctx, 0, 1, '#3a3a46', 5, 3);
-      px(ctx, 1, 1, '#fff3b0', 3, 3);
-      px(ctx, 2, 2, '#ffffff', 1, 1);
+      px(ctx, 5, 3, '#3a3a46', 2, 31);
+      px(ctx, 6, 3, '#5a5a68', 1, 29);
+      px(ctx, 1, 2, '#3a3a46', 6, 1);
+      px(ctx, 0, 3, '#3a3a46', 3, 2);
+      px(ctx, 0, 5, '#fff3b0', 3, 1);
+      px(ctx, 4, 31, '#3a3a46', 4, 3);
+    },
+  },
+  fence: {
+    w: 16,
+    h: 10,
+    draw(ctx) {
+      px(ctx, 0, 0, '#8a5a30', 2, 10);
+      px(ctx, 14, 0, '#8a5a30', 2, 10);
+      px(ctx, 0, 2, '#b07a46', 16, 2);
+      px(ctx, 0, 6, '#b07a46', 16, 2);
+      px(ctx, 0, 0, '#c99a60', 2, 1);
+      px(ctx, 14, 0, '#c99a60', 2, 1);
     },
   },
   neonPink: neon('#ff4fd8', '#a02a88'),
   neonCyan: neon('#4cf0ff', '#2a8a9a'),
   neonLime: neon('#b6ff4f', '#6a9a2a'),
   dune0: dune(),
-  dune1: dune(),
-  towel0: towel('#ff5b7a', '#ffffff'),
-  towel1: towel('#3f7fe0', '#ffd23f'),
-  towel2: towel('#3fb86a', '#fff3a0'),
 
   // кільце щита навколо гравця
   shieldRing: {
-    w: 21,
-    h: 29,
+    w: 32,
+    h: 30,
     draw(ctx) {
-      const cx = 10;
-      const cy = 14;
-      for (let y = 0; y < 29; y++) {
-        for (let x = 0; x < 21; x++) {
-          const d = ((x - cx) / 10.2) ** 2 + ((y - cy) / 14.2) ** 2;
-          if (d <= 1 && d > 0.78) px(ctx, x, y, (x + y) % 3 === 0 ? '#ffffff' : '#4cd6ff');
+      for (let y = 0; y < 30; y++) {
+        for (let x = 0; x < 32; x++) {
+          const d = ((x - 15.5) / 15.6) ** 2 + ((y - 14.5) / 14.6) ** 2;
+          if (d <= 1 && d > 0.8) px(ctx, x, y, (x + y) % 3 === 0 ? '#ffffff' : '#4cd6ff');
         }
       }
     },

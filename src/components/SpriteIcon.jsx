@@ -26,14 +26,14 @@ export function SpriteIcon({ name, frame = 0, scale = 1, className = '', title }
   );
 }
 
-export function BikeIcon({ skin, lean = 0, frame = 0, scale = 1, className = '' }) {
+export function BikeIcon({ skin, frame = 0, scale = 1, className = '' }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current;
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, c.width, c.height);
-    ctx.drawImage(getBikeFrame(skin, lean, frame), 0, 0);
-  }, [skin, lean, frame]);
+    ctx.drawImage(getBikeFrame(skin, frame), 0, 0);
+  }, [skin, frame]);
   return (
     <canvas
       ref={ref}

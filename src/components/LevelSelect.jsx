@@ -87,7 +87,7 @@ export default function LevelSelect({ save, onBack, onStart }) {
         <p className="select__desc">{loc.description}</p>
 
         <div className="select__obstacles" aria-label="Перешкоди локації">
-          {[...loc.obstacles, ...loc.hazards].map((o) => (
+          {[...loc.obstacles, ...loc.movers, ...loc.flyers, ...loc.hazards].map((o) => (
             <SpriteIcon key={o.type} name={ENTITY_TYPES[o.type].sprites[0]} />
           ))}
         </div>

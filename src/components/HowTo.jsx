@@ -21,7 +21,8 @@ export default function HowTo({ save, onBack }) {
           <h3>Мета</h3>
           <ul>
             <Row icon={<BikeIcon skin={getSkin(save.skin)} />}>
-              Велосипед їде сам. Ти керуєш лише <b>вліво-вправо</b> і об&apos;їжджаєш перешкоди. Доїдь до фінішу!
+              Велосипед їде вправо сам. Перестрибуй перешкоди і ями, заїжджай на уступи, керуй швидкістю. Доїдь до
+              фінішу!
             </Row>
           </ul>
         </section>
@@ -30,13 +31,19 @@ export default function HowTo({ save, onBack }) {
           <h3>Керування</h3>
           <ul className="howto__keys">
             <li>
+              <kbd>Пробіл</kbd> / <kbd>
+                <PxIcon name="up" />
+              </kbd>{' '}
+              / <kbd>W</kbd> — стрибок (тримай — вище)
+            </li>
+            <li>
               <kbd>
                 <PxIcon name="arrowLeft" />
               </kbd>{' '}
-              <kbd>
+              / <kbd>A</kbd> — гальмо, <kbd>
                 <PxIcon name="arrowRight" />
               </kbd>{' '}
-              або <kbd>A</kbd> <kbd>D</kbd> — рух
+              / <kbd>D</kbd> — розгін
             </li>
             <li>
               <kbd>Esc</kbd> / <kbd>P</kbd> — пауза
@@ -45,7 +52,7 @@ export default function HowTo({ save, onBack }) {
               <kbd>Enter</kbd> — ще раз після заїзду
             </li>
             <li>
-              <PxIcon name="phone" /> Тримай ліву або праву половину екрана
+              <PxIcon name="phone" /> Зліва — гальмо і розгін, справа — стрибок
             </li>
           </ul>
         </section>
@@ -63,7 +70,9 @@ export default function HowTo({ save, onBack }) {
           <h3>Небезпечні зони</h3>
           <ul>
             <Row icon={<SpriteIcon name="puddle" />}>Калюжа, багно, пісок — сповільнюють.</Row>
-            <Row icon={<SpriteIcon name="ice" />}>Лід і олія — велосипед заносить, керування з інерцією.</Row>
+            <Row icon={<SpriteIcon name="ice" />}>Лід і олія — велосипед котиться сам, гальма не працюють.</Row>
+            <Row icon={<SpriteIcon name="bird" />}>Птахи летять на висоті стрибка — під ними просто проїжджай.</Row>
+            <Row icon={<span className="howto__pit" />}>Яма — мінус життя, повернешся трохи назад.</Row>
           </ul>
         </section>
 
@@ -82,7 +91,7 @@ export default function HowTo({ save, onBack }) {
               <li key={l.id} className="howto__loc">
                 <b style={{ color: l.theme.accent }}>{l.name}</b>
                 <span className="howto__loc-icons">
-                  {[...l.obstacles, ...l.hazards].map((o) => (
+                  {[...l.obstacles, ...l.movers, ...l.flyers, ...l.hazards].map((o) => (
                     <SpriteIcon key={o.type} name={ENTITY_TYPES[o.type].sprites[0]} />
                   ))}
                 </span>

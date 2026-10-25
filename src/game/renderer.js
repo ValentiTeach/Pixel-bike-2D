@@ -1,8 +1,10 @@
-// Рендер світу в canvas 180×320. Шари (знизу вгору):
-// земля → анімація землі → пласкі об'єкти (калюжі, люки, лінії) → об'єкти «з глибиною»
-// (сортовані за нижнім краєм, разом із гравцем) → частинки → погода → темрява/світло → тексти → спалах.
-import { VIEW_W, VIEW_H, TILE_H } from './constants.js';
-import { getSprite, getBikeFrame, getCrashedBike, getShadow } from './sprites.js';
+// Рендер виду збоку в canvas 320×180. Шари (ззаду наперед):
+// небо → паралакс-шари (хмари, гори, місто, дерева) → декор на землі → земля з травою →
+// небезпечні смуги → ворота старту/фінішу → перешкоди і бонуси → велосипедист →
+// частинки → погода → темрява/світло → тексти → спалах.
+import { VIEW_W, VIEW_H, GROUND_TILE_W, GROUND_TILE_H, LAYER_W, PLAYER_HITBOX } from './constants.js';
+import { getSprite, getBikeFrame, getShadow } from './sprites.js';
+import { BIKE_FRAMES } from './bikeSprite.js';
 import { createRng, hashString } from './rng.js';
 import { drawPixelText } from './font.js';
 
@@ -13,10 +15,8 @@ const makeCanvas = (w, h) => {
   return c;
 };
 
-const SHADOW = 'rgba(10, 6, 20, 0.35)';
+const SHADOW = 'rgba(10, 6, 20, 0.3)';
 const LIGHT_SCALE = 0.5; // світло рахуємо в половинній роздільності — «піксельні» відблиски
-
-const isFlat = (e) => e.kind === 'line' || e.kind === 'hazard' || e.T?.flat || (e.kind === 'decor' && e.flat);
 
 export class Renderer {
   constructor(canvas, location, skin) {
@@ -25,11 +25,19 @@ export class Renderer {
     this.ctx.imageSmoothingEnabled = false;
     this.location = location;
     this.skin = skin;
-    this.ground = makeCanvas(VIEW_W, TILE_H);
-    location.paintGround(this.ground.getContext('2d'), createRng(hashString(location.id)), TILE_H);
-    this.light = location.darkness ? makeCanvas(VIEW_W * LIGHT_SCALE, VIEW_H * LIGHT_SCALE) : null;
-    this.depth = [];
     this.shakeEnabled = true;
+    const rng = createRng(hashString(location.id));
+
+    this.sky = makeCanvas(VIEW_W, VIEW_H);
+    location.paintSky(this.sky.getContext('2d'), VIEW_W, VIEW_H, rng);
+    this.layers = location.layers.map((l) => {
+      const c = makeCanvas(LAYER_W, VIEW_H);
+      l.paint(c.getContext('2d'), rng, LAYER_W, VIEW_H);
+      return { canvas: c, factor: l.factor };
+    });
+    this.ground = makeCanvas(GROUND_TILE_W, GROUND_TILE_H);
+    location.paintGround(this.ground.getContext('2d'), rng, GROUND_TILE_W, GROUND_TILE_H);
+    this.light = location.darkness ? makeCanvas(VIEW_W * LIGHT_SCALE, VIEW_H * LIGHT_SCALE) : null;
   }
 
   render(world) {
@@ -38,8 +46,15 @@ export class Renderer {
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = '#0b0a12';
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.drawImage(this.sky, 0, 0);
+
+    const cam = Math.round(world.camX);
+    for (const l of this.layers) {
+      const off = -(((Math.round(cam * l.factor) % LAYER_W) + LAYER_W) % LAYER_W);
+      ctx.drawImage(l.canvas, off, 0);
+      ctx.drawImage(l.canvas, off + LAYER_W, 0);
+    }
+    this.location.animate?.(ctx, world.time, cam);
 
     let sx = 0;
     let sy = 0;
@@ -48,32 +63,20 @@ export class Renderer {
       sy = Math.round((Math.random() * 2 - 1) * world.shake);
     }
     ctx.save();
-    ctx.translate(sx, sy);
+    ctx.translate(sx - cam, sy);
 
-    const off = Math.floor(world.distance) % TILE_H;
-    ctx.drawImage(this.ground, 0, off - TILE_H);
-    ctx.drawImage(this.ground, 0, off);
-    this.location.animate?.(ctx, world.time, world.distance);
-
-    const depth = this.depth;
-    depth.length = 0;
+    const visible = (e) => e.x + e.w > cam - 20 && e.x < cam + VIEW_W + 20;
+    for (const e of world.entities) if (e.kind === 'decor' && visible(e)) this.drawEntity(e, world.time, false);
+    this.drawGround(world, cam);
+    for (const e of world.entities) if (e.kind === 'hazard' && visible(e)) this.drawEntity(e, world.time, false);
+    for (const e of world.entities) if (e.kind === 'gate') this.drawGate(world, e, 'back');
     for (const e of world.entities) {
-      if (isFlat(e)) {
-        if (e.kind === 'line') this.drawLine(e);
-        else this.drawEntity(e, world.time, false);
-      } else depth.push(e);
+      if ((e.kind === 'obstacle' || e.kind === 'pickup') && visible(e)) this.drawEntity(e, world.time, true);
     }
-    depth.push(world.player);
-    depth.sort((a, b) => a.y + a.h - (b.y + b.h));
-    for (const e of depth) {
-      if (e === world.player) this.drawPlayer(world);
-      else this.drawEntity(e, world.time, true);
-    }
+    this.drawPlayer(world);
+    for (const e of world.entities) if (e.kind === 'gate') this.drawGate(world, e, 'front');
 
     this.drawParticles(world.particles);
-    this.drawWeather(world.weather);
-    if (this.light) this.drawDarkness(world);
-
     for (const t of world.texts) {
       ctx.globalAlpha = Math.min(1, t.life * 2);
       drawPixelText(ctx, t.text, t.x, t.y, t.color);
@@ -81,29 +84,96 @@ export class Renderer {
     ctx.globalAlpha = 1;
     ctx.restore();
 
+    this.drawWeather(world.weather);
+    if (this.light) this.drawDarkness(world, cam);
+
     if (world.flash > 0) {
       ctx.fillStyle = `rgba(255, 60, 90, ${Math.min(0.45, world.flash * 1.8)})`;
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     }
   }
 
+  // Земля: текстура, «прив'язана» до світових координат, + бічні стінки уступів і ям.
+  drawGround(world, cam) {
+    const ctx = this.ctx;
+    const T = GROUND_TILE_W;
+    const edge = this.location.edge;
+    const segs = world.segments;
+    for (let i = 0; i < segs.length; i++) {
+      const s = segs[i];
+      if (s.x1 < cam - 4 || s.x0 > cam + VIEW_W + 4) continue;
+      const depth = VIEW_H - s.top;
+      for (let wx = Math.floor(s.x0 / T) * T; wx < s.x1; wx += T) {
+        const a = Math.max(s.x0, wx);
+        const b = Math.min(s.x1, wx + T);
+        if (b <= a) continue;
+        ctx.drawImage(this.ground, a - wx, 0, b - a, Math.min(depth, GROUND_TILE_H), a, s.top, b - a, Math.min(depth, GROUND_TILE_H));
+      }
+      // бічні стінки: там, де сусід нижче або яма
+      const prev = segs[i - 1];
+      const next = segs[i + 1];
+      const leftOpen = !prev || prev.x1 < s.x0 || prev.top > s.top;
+      const rightOpen = !next || next.x0 > s.x1 || next.top > s.top;
+      if (leftOpen) this.drawEdge(s.x0, s.top, prev && prev.x1 === s.x0 ? prev.top : VIEW_H, edge, -1);
+      if (rightOpen) this.drawEdge(s.x1 - 2, s.top, next && next.x0 === s.x1 ? next.top : VIEW_H, edge, 1);
+    }
+  }
+
+  drawEdge(x, top, bottom, color, side) {
+    const ctx = this.ctx;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, top + 3, 2, bottom - top - 3);
+    // затінений кут поверхні
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(side < 0 ? x : x + 1, top + 1, 1, 2);
+  }
+
+  drawGate(world, e, layer) {
+    const ctx = this.ctx;
+    const top = world.groundAt(e.x) ?? world.groundAt(e.x - 4) ?? 150;
+    const x = Math.round(e.x);
+    if (layer === 'back') {
+      // задній стовп і банер
+      ctx.fillStyle = '#9a9aaa';
+      ctx.fillRect(x + 6, top - 42, 2, 42);
+      if (e.style === 'finish') {
+        for (let by = 0; by < 6; by++) {
+          for (let bx = 0; bx < 10; bx++) {
+            ctx.fillStyle = (bx + by) % 2 ? '#ffffff' : '#1d1b26';
+            ctx.fillRect(x - 1 + bx, top - 44 + by, 1, 1);
+          }
+        }
+      }
+      // лінія на землі
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = i % 2 ? '#ffffff' : '#1d1b26';
+        ctx.fillRect(x + i, top, 1, 3);
+      }
+      return;
+    }
+    ctx.fillStyle = '#d0d0e0';
+    ctx.fillRect(x, top - 44, 2, 44);
+    ctx.fillStyle = e.style === 'finish' ? '#ff4d5e' : '#7ed957';
+    ctx.fillRect(x + 2, top - 44, 8, 5);
+    ctx.fillRect(x + 2, top - 39, 5, 2);
+  }
+
   drawEntity(e, t, withShadow) {
     const ctx = this.ctx;
     let frame = 0;
     if (e.frames > 1) frame = Math.floor(e.anim * (e.T?.fps ?? 6)) % e.frames;
-    let dy = 0;
-    if (e.T?.hop) dy = -Math.abs(Math.sin(e.anim * 6)) * e.T.hop;
+    let dy = e.dy || 0;
     if (e.kind === 'pickup') dy = Math.sin(t * 4 + e.id) * 1.5;
     const x = Math.round(e.x);
     const y = Math.round(e.y + dy);
     const img = getSprite(e.sprite, { frame, flip: e.flip });
 
-    if (withShadow) {
-      if (e.kind === 'pickup' || e.T?.hop) {
+    if (withShadow && e.kind === 'obstacle' && e.T.behavior !== 'fly') {
+      if (e.dy) {
         const sh = getShadow(Math.max(4, e.w - 2));
-        ctx.drawImage(sh, Math.round(e.x + 1), Math.round(e.y + e.h - sh.height / 2));
+        ctx.drawImage(sh, x + 1, Math.round(e.y + e.h - sh.height / 2));
       } else {
-        ctx.drawImage(getSprite(e.sprite, { frame, flip: e.flip, silhouette: SHADOW }), x + 1, y + 1);
+        ctx.drawImage(getSprite(e.sprite, { frame, flip: e.flip, silhouette: SHADOW }), x + 2, y + 1);
       }
     }
 
@@ -120,54 +190,42 @@ export class Renderer {
   drawPlayer(world) {
     const ctx = this.ctx;
     const p = world.player;
+    if (p.y > 200) return;
     const x = Math.round(p.x);
     const y = Math.round(p.y);
-    const crashed = world.phase === 'crash' || (world.phase === 'over' && world.result && !world.result.completed);
-    if (crashed) {
-      const img = getCrashedBike(this.skin);
-      ctx.drawImage(getShadow(img.width), x - 6, y + 14);
-      ctx.drawImage(img, x - 6, y + 6);
+    const frame = Math.floor(p.pedal) % BIKE_FRAMES;
+
+    // тінь на землі під велосипедом
+    const ground = world.surfaceUnder(p.x + PLAYER_HITBOX.l, p.x + p.w - PLAYER_HITBOX.r);
+    if (ground !== null) {
+      const h = ground - (p.y + p.h);
+      const w = Math.max(6, Math.round(18 - Math.max(0, h) / 4));
+      ctx.drawImage(getShadow(w), Math.round(p.x + p.w / 2 - w / 2), ground - 2);
+    }
+
+    const img = getBikeFrame(this.skin, frame);
+    if (world.phase === 'crash' || (world.phase === 'over' && world.result && !world.result.completed)) {
+      ctx.save();
+      ctx.translate(x + p.w / 2, y + p.h / 2);
+      ctx.rotate(Math.min(p.spin, Math.PI * 1.5));
+      ctx.drawImage(img, -p.w / 2, -p.h / 2);
+      ctx.restore();
       return;
     }
-    const sh = getShadow(9);
-    ctx.drawImage(sh, x + 1, y + p.h - 2);
     const blink = world.invuln > 0 && Math.floor(world.invuln * 14) % 2 === 0;
     if (!blink) {
-      const lean = p.lean < -0.3 ? -1 : p.lean > 0.3 ? 1 : 0;
-      const frame = Math.floor(p.pedal) % 2;
-      ctx.drawImage(getBikeFrame(this.skin, lean, frame), x, y);
+      if (!p.onGround && p.vy < -60) {
+        // у стрибку — «заднє колесо вниз» на 1 піксель для відчуття руху
+        ctx.drawImage(img, 0, 0, 13, p.h, x, y + 1, 13, p.h);
+        ctx.drawImage(img, 13, 0, p.w - 13, p.h, x + 13, y, p.w - 13, p.h);
+      } else ctx.drawImage(img, x, y);
     }
     if (world.shield > 0) {
       const ending = world.shield < 1.5;
       if (!ending || Math.floor(world.time * 10) % 2 === 0) {
         ctx.globalAlpha = 0.65 + 0.25 * Math.sin(world.time * 8);
-        ctx.drawImage(getSprite('shieldRing'), x - 5, y - 2);
+        ctx.drawImage(getSprite('shieldRing'), x - 3, y - 5);
         ctx.globalAlpha = 1;
-      }
-    }
-  }
-
-  drawLine(e) {
-    const ctx = this.ctx;
-    const y = Math.round(e.y);
-    for (let cx = 0; cx < e.w; cx += 3) {
-      for (let r = 0; r < 2; r++) {
-        ctx.fillStyle = (cx / 3 + r) % 2 ? '#ffffff' : '#1d1b26';
-        ctx.fillRect(e.x + cx, y + r * 3, Math.min(3, e.w - cx), 3);
-      }
-    }
-    if (e.style === 'finish') {
-      // стовпи і гірлянда з прапорців
-      ctx.fillStyle = '#c9c9d9';
-      ctx.fillRect(e.x - 3, y - 14, 2, 20);
-      ctx.fillRect(e.x + e.w + 1, y - 14, 2, 20);
-      ctx.fillStyle = '#5a5470';
-      ctx.fillRect(e.x - 1, y - 13, e.w + 2, 1);
-      const colors = ['#ff4d5e', '#ffd23f', '#4cd6ff', '#7ed957'];
-      for (let fx = 2, i = 0; fx < e.w - 3; fx += 6, i++) {
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.fillRect(e.x + fx, y - 12, 4, 2);
-        ctx.fillRect(e.x + fx + 1, y - 10, 2, 2);
       }
     }
   }
@@ -186,7 +244,7 @@ export class Renderer {
     if (!w) return;
     const ctx = this.ctx;
     if (w.type === 'rain') {
-      ctx.fillStyle = 'rgba(160, 180, 255, 0.55)';
+      ctx.fillStyle = 'rgba(160, 180, 255, 0.5)';
       for (const p of w.parts) {
         const x = Math.round(p.x);
         const y = Math.round(p.y);
@@ -213,7 +271,7 @@ export class Renderer {
   }
 
   // Ніч: темний шар з «вирізаними» плямами світла (фара, ліхтарі, фари машин) + кольорове сяйво.
-  drawDarkness(world) {
+  drawDarkness(world, cam) {
     const ctx = this.ctx;
     const lc = this.light.getContext('2d');
     const S = LIGHT_SCALE;
@@ -233,31 +291,32 @@ export class Renderer {
     };
 
     const p = world.player;
-    const hx = p.x + p.w / 2;
-    const hy = p.y + 2;
-    if (world.phase !== 'crash') {
-      const sway = p.lean * 18;
-      const g = lc.createLinearGradient(0, hy * S, 0, (hy - 150) * S);
+    const hx = p.x - cam + p.w - 3;
+    const hy = p.y + 7;
+    if (world.phase !== 'crash' && p.y < VIEW_H) {
+      // фара — промінь уперед
+      const g = lc.createLinearGradient(hx * S, 0, (hx + 150) * S, 0);
       g.addColorStop(0, 'rgba(0,0,0,0.95)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       lc.fillStyle = g;
       lc.beginPath();
-      lc.moveTo((hx - 3) * S, hy * S);
-      lc.lineTo((hx - 44 + sway) * S, (hy - 150) * S);
-      lc.lineTo((hx + 44 + sway) * S, (hy - 150) * S);
-      lc.lineTo((hx + 3) * S, hy * S);
+      lc.moveTo(hx * S, (hy - 2) * S);
+      lc.lineTo((hx + 150) * S, (hy - 30) * S);
+      lc.lineTo((hx + 150) * S, (hy + 40) * S);
+      lc.lineTo(hx * S, (hy + 2) * S);
       lc.closePath();
       lc.fill();
+      hole(p.x - cam + p.w / 2, p.y + p.h / 2, 26, 0.8);
     }
-    hole(hx, p.y + p.h / 2, 26, 0.85);
 
     const glows = [];
     for (const e of world.entities) {
       const L = e.light ?? e.T?.light;
-      if (!L || e.y < -40 || e.y > VIEW_H + 40) continue;
-      const lx = e.x + e.w / 2;
+      if (!L) continue;
+      const lx = e.x - cam + (L.dx ?? e.w / 2);
+      if (lx < -50 || lx > VIEW_W + 50) continue;
       const ly = e.y + (L.dy ?? e.h / 2);
-      hole(lx, ly, L.r);
+      hole(lx, ly + L.r * 0.4, L.r);
       glows.push({ x: lx, y: ly, r: L.r, color: L.color });
     }
     ctx.drawImage(this.light, 0, 0, VIEW_W, VIEW_H);
@@ -265,7 +324,7 @@ export class Renderer {
     ctx.globalCompositeOperation = 'lighter';
     for (const gl of glows) {
       const g = ctx.createRadialGradient(gl.x, gl.y, 0, gl.x, gl.y, gl.r);
-      g.addColorStop(0, `rgba(${gl.color}, 0.22)`);
+      g.addColorStop(0, `rgba(${gl.color}, 0.25)`);
       g.addColorStop(1, `rgba(${gl.color}, 0)`);
       ctx.fillStyle = g;
       ctx.fillRect(gl.x - gl.r, gl.y - gl.r, gl.r * 2, gl.r * 2);

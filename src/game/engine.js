@@ -7,7 +7,7 @@ import { Input } from './input.js';
 import { getLocation } from './locations.js';
 import { audio } from './audio.js';
 
-const SOUND_EVENTS = new Set(['coin', 'hit', 'shield', 'shieldBreak', 'heart', 'splash', 'slip', 'beep', 'go']);
+const SOUND_EVENTS = new Set(['coin', 'hit', 'shield', 'shieldBreak', 'heart', 'splash', 'slip', 'beep', 'go', 'jump', 'land', 'fall', 'bump']);
 const HUD_INTERVAL = 0.1;
 
 const vibrate = (ms) => {
@@ -83,13 +83,19 @@ export class GameEngine {
     this.input.setTouch(side, pressed);
   }
 
+  setJump(pressed) {
+    this.input.setJump(pressed);
+  }
+
   loop(now) {
     if (!this.running) return;
     this.raf = requestAnimationFrame(this.loop);
     const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     if (!this.paused) {
-      this.world.input = this.input.direction();
+      this.world.dir = this.input.direction();
+      this.world.jumpHeld = this.input.jumpHeld();
+      if (this.input.consumeJumpPresses() > 0) this.world.pressJump();
       const steps = Math.max(1, Math.ceil(dt / MAX_STEP));
       const h = dt / steps;
       for (let i = 0; i < steps; i++) this.world.update(h);
@@ -109,7 +115,7 @@ export class GameEngine {
     }
     for (const ev of events) {
       if (SOUND_EVENTS.has(ev.type)) audio.play(ev.type);
-      if (ev.type === 'hit') vibrate(70);
+      if (ev.type === 'hit' || ev.type === 'fall') vibrate(70);
       if (ev.type === 'crash') {
         audio.stopMusic(true);
         audio.play('crash');

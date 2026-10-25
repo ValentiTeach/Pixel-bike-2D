@@ -3,6 +3,8 @@
 import { MATRIX_SPRITES } from './spriteData.js';
 import { PROCEDURAL_SPRITES } from './proceduralSprites.js';
 import { createRng, hashString } from './rng.js';
+import { drawBike, BIKE_FRAMES } from './bikeSprite.js';
+import { PLAYER_W, PLAYER_H } from './constants.js';
 
 const parsed = new Map();
 const canvases = new Map();
@@ -142,41 +144,15 @@ export function getSprite(name, { frame = 0, flip = false, silhouette = null, pa
   return c;
 }
 
-// ---- Велосипедист ----
+// ---- Велосипедист (вид збоку) ----
 
-const shiftRow = (row, dx) => (dx < 0 ? row.slice(-dx) + '.'.repeat(-dx) : '.'.repeat(dx) + row.slice(0, row.length - dx));
-
-/** Рядки кадру велосипедиста з нахилом (-1 вліво, 0, 1 вправо). Чиста функція — є в тестах. */
-export function bikeRows(frame, lean) {
-  const info = parseMatrix('bike');
-  const rows = info.frames[frame % info.frames.length];
-  if (!lean) return rows;
-  // Нахиляємо переднє колесо, кермо і голову — тулуб і заднє колесо лишаються на місці.
-  return rows.map((row, i) => (i <= 9 ? shiftRow(row, lean) : row));
-}
-
-export function getBikeFrame(skin, lean, frame) {
-  const id = `bike|${skin.id}|${lean}|${frame}`;
+export function getBikeFrame(skin, frame) {
+  const f = ((frame % BIKE_FRAMES) + BIKE_FRAMES) % BIKE_FRAMES;
+  const id = `bike|${skin.id}|${f}`;
   let c = canvases.get(id);
   if (c) return c;
-  const info = parseMatrix('bike');
-  c = createCanvas(info.w, info.h);
-  paintRows(c.getContext('2d'), bikeRows(frame, lean), { ...info.def.palette, ...skin.palette });
-  canvases.set(id, c);
-  return c;
-}
-
-// Велосипедист, що впав (поворот на 90° — без розмиття пікселів).
-export function getCrashedBike(skin) {
-  const id = `bike-crash|${skin.id}`;
-  let c = canvases.get(id);
-  if (c) return c;
-  const src = getBikeFrame(skin, 0, 0);
-  c = createCanvas(src.height, src.width);
-  const ctx = c.getContext('2d');
-  ctx.translate(src.height, 0);
-  ctx.rotate(Math.PI / 2);
-  ctx.drawImage(src, 0, 0);
+  c = createCanvas(PLAYER_W, PLAYER_H);
+  drawBike(c.getContext('2d'), skin.palette, f);
   canvases.set(id, c);
   return c;
 }

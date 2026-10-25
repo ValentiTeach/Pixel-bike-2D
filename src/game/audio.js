@@ -175,6 +175,18 @@ class AudioManager {
         this.tone(659, t, 0.1, { wave: 'triangle', vol: 0.3 });
         this.tone(880, t + 0.1, 0.18, { wave: 'triangle', vol: 0.3 });
         break;
+      case 'jump':
+        this.tone(330, t, 0.14, { wave: 'square', vol: 0.14, slide: 400 });
+        break;
+      case 'land':
+        this.noise(t, 0.06, { vol: 0.18, filter: 600 });
+        break;
+      case 'bump':
+        this.tone(120, t, 0.12, { wave: 'square', vol: 0.2, slide: -40 });
+        break;
+      case 'fall':
+        this.tone(700, t, 0.5, { wave: 'triangle', vol: 0.28, slide: -600 });
+        break;
       case 'splash':
         this.noise(t, 0.22, { vol: 0.3, filter: 900 });
         break;

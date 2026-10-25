@@ -18,12 +18,24 @@ export default function MainMenu({ save, onNavigate }) {
       <GameCanvas locationId={save.lastLocation} mode="demo" skin={getSkin(save.skin)} className="bg-canvas" />
       <div className="menu__shade" />
       <div className="menu__content">
-        <h1 className="logo" aria-label="Pixel Bike 2D">
+        <div className="menu__brand">
+          <h1 className="logo" aria-label="Pixel Bike 2D">
           <span className="logo__line logo__line--a">PIXEL</span>
           <span className="logo__line logo__line--b">BIKE</span>
           <span className="logo__badge">2D</span>
         </h1>
-        <p className="tagline">Крути педалі. Об&apos;їжджай перешкоди. Дістанься фінішу!</p>
+          <p className="tagline">Крути педалі. Стрибай через перешкоди. Дістанься фінішу!</p>
+          <footer className="menu__footer">
+            <span className="chip">
+              <SpriteIcon name="star" />
+              {stars}/{LOCATIONS.length * 3}
+            </span>
+            <span className="chip">
+              <SpriteIcon name="coin" />
+              {save.coins}
+            </span>
+          </footer>
+        </div>
 
         <nav className="menu__buttons" ref={navRef}>
           <PixelButton variant="primary" onClick={() => onNavigate('select')}>
@@ -33,17 +45,6 @@ export default function MainMenu({ save, onNavigate }) {
           <PixelButton onClick={() => onNavigate('howto')}>Як грати</PixelButton>
           <PixelButton onClick={() => onNavigate('settings')}>Налаштування</PixelButton>
         </nav>
-
-        <footer className="menu__footer">
-          <span className="chip">
-            <SpriteIcon name="star" />
-            {stars}/{LOCATIONS.length * 3}
-          </span>
-          <span className="chip">
-            <SpriteIcon name="coin" />
-            {save.coins}
-          </span>
-        </footer>
       </div>
     </div>
   );
