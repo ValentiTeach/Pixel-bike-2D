@@ -114,6 +114,7 @@ export default function GameScreen({ run, save, setSave, onRunEnd, onRestart, on
             <Key>→</Key> нахил <span className="sep" />
             <Key>Пробіл</Key> хоп
           </p>
+          {loc.tip && run.mode === 'level' && <p className="countdown__tip">{loc.tip}</p>}
         </div>
       )}
       {go && !paused && <p className="countdown__go">Вперед</p>}

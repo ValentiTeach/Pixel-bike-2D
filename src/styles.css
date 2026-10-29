@@ -385,11 +385,15 @@ button {
 .stars {
   display: inline-flex;
   gap: 0.2em;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .stars__item.is-on {
   color: var(--accent);
+}
+
+.modal .stars {
+  justify-content: center;
 }
 
 .stars--animate .stars__item {
@@ -896,7 +900,7 @@ button {
 
 .garage__bike {
   position: relative;
-  margin-bottom: calc(var(--u) * 9);
+  margin-bottom: calc(var(--u) * 11.5);
 }
 
 .garage__grid {
@@ -1325,7 +1329,7 @@ button {
 .hud__bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .hud__speed {
@@ -1548,6 +1552,18 @@ button {
   margin-top: 1em !important;
   font-size: 0.85em;
   color: rgba(255, 255, 255, 0.85);
+}
+
+.countdown__tip {
+  max-width: 26em;
+  margin-top: 0.7em !important;
+  padding: 0.4em 0.9em;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.5);
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-2);
+  text-align: center;
 }
 
 .countdown__hint .sep {

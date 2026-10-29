@@ -271,7 +271,7 @@ export class BikeBody {
     if (q) {
       const nu = -(q.nx * ux + q.ny * uy);
       wh.nu = nu;
-      if (nu < 0.3) {
+      if (nu < 0.2) {
         wh.rigid = true; // удар збоку (стінка уступу) — підвіска не допоможе
         wh.side = true;
       }
@@ -348,7 +348,7 @@ export class BikeBody {
       else fs += d.c * 1.25 * sd;
       if (fs <= 0) continue;
       const q = wh.contact;
-      const N = fs / Math.max(0.3, wh.nu);
+      const N = fs / Math.max(0.2, wh.nu);
       wh.load = N;
       const rx = wh.hx - this.x;
       const ry = wh.hy - this.y;

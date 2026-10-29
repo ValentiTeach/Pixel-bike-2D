@@ -1,7 +1,7 @@
-// Реєстр спрайтів: розбір матриць, процедурні спрайти, кеш готових canvas.
+// Реєстр спрайтів: розбір матриць, процедурні спрайти (decorSprites.js), кеш готових canvas.
 // Розміри (spriteSize) доступні без DOM — це використовує ігрова логіка і тести.
 import { MATRIX_SPRITES } from './spriteData.js';
-import { PROCEDURAL_SPRITES } from './proceduralSprites.js';
+import { DECOR_SPRITES as PROCEDURAL_SPRITES } from './decorSprites.js';
 import { createRng, hashString } from './rng.js';
 import { drawBikeRider, previewState, BIKE_FRAMES } from './bikeSprite.js';
 

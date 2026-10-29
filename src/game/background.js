@@ -1,7 +1,6 @@
-// Хелпери для фонів виду збоку: дизерингове небо, паралакс-шари (гори, пагорби, місто,
-// хмари, ряди дерев) і безшовна текстура землі з травою та камінням — як у класичних платформерах.
+// Хелпери для фонів виду збоку: дизерингове небо і паралакс-шари (гори, пагорби, місто,
+// хмари, ліс, скелі каньйону, море). Текстури покриттів траси — у groundTextures.js.
 // Усі шари безшовні по горизонталі: періодичні функції + «загортання» об'єктів через край.
-import { getSprite, spriteSize } from './sprites.js';
 
 export const px = (ctx, x, y, c, w = 1, h = 1) => {
   ctx.fillStyle = c;
@@ -130,20 +129,6 @@ export function clouds(ctx, rng, { W, yMin, yMax, count, color, shade }) {
   }
 }
 
-// Ряд спрайтів (дерева, кактуси, пальми), вирівняних по лінії base.
-export function spriteRow(ctx, rng, { W, base, items, gap = [4, 20], tint = null }) {
-  let x = rng.int(0, 10);
-  while (x < W) {
-    const item = rng.weighted(items);
-    const img = getSprite(item.sprite, tint ? { silhouette: tint } : {});
-    const { w, h } = spriteSize(item.sprite);
-    const y = base - h + rng.int(0, 2);
-    ctx.drawImage(img, x, y);
-    if (x + w > W) ctx.drawImage(img, x - W, y);
-    x += w + rng.int(gap[0], gap[1]);
-  }
-}
-
 // Море з відблисками.
 export function sea(ctx, rng, { W, H, y, colors, sparkle }) {
   px(ctx, 0, y, colors[0], W, H - y);
@@ -155,61 +140,6 @@ export function sea(ctx, rng, { W, H, y, colors, sparkle }) {
   }
   px(ctx, 0, y, sparkle, W, 1);
   for (let i = 0; i < 120; i++) px(ctx, rng.int(0, W - 1), rng.int(y + 2, H - 1), sparkle, rng.int(2, 5), 1);
-}
-
-/**
- * Безшовна текстура землі: поверхня (трава/пісок/сніг/асфальт) з «бахромою» знизу
- * і ґрунт з округлими каменями, як у класичних піксельних платформерах.
- */
-export function groundTexture(ctx, rng, { W, H, surface, fringe, body, bodyNoise, rocks = null, layers = null }) {
-  px(ctx, 0, 0, body, W, H);
-  if (layers) {
-    // горизонтальні пласти (пісковик, лід)
-    let y = surface.length + 2;
-    let i = 0;
-    while (y < H) {
-      const t = rng.int(4, 9);
-      const p = rng.range(0, Math.PI * 2);
-      for (let x = 0; x < W; x++) {
-        const off = Math.round(Math.sin((x / W) * Math.PI * 2 * 2 + p) * 1.5);
-        px(ctx, x, y + off, layers[i % layers.length], 1, t);
-      }
-      y += t;
-      i++;
-    }
-  }
-  for (let i = 0; i < W * H * 0.08; i++) px(ctx, rng.int(0, W - 1), rng.int(surface.length, H - 1), rng.pick(bodyNoise));
-
-  if (rocks) {
-    const n = Math.round((W * H) / rocks.density);
-    for (let i = 0; i < n; i++) {
-      const cx = rng.int(0, W - 1);
-      const cy = rng.int(surface.length + 4, H - 4);
-      const rx = rng.range(3, 8);
-      const ry = rng.range(2.5, 5);
-      for (let y = -Math.ceil(ry); y <= Math.ceil(ry); y++) {
-        for (let x = -Math.ceil(rx); x <= Math.ceil(rx); x++) {
-          const d = (x / rx) ** 2 + (y / ry) ** 2;
-          if (d > 1) continue;
-          let c = rocks.mid;
-          if (d > 0.7 && x + y > 0) c = rocks.dark;
-          else if (d > 0.55 && x + y < 0) c = rocks.light;
-          else if (x + y < -rx * 0.6 && d < 0.5) c = rocks.light;
-          px(ctx, (((cx + x) % W) + W) % W, cy + y, c);
-        }
-      }
-    }
-  }
-
-  // поверхня
-  surface.forEach((c, i) => px(ctx, 0, i, c, W, 1));
-  for (let i = 0; i < W * 0.6; i++) px(ctx, rng.int(0, W - 1), rng.int(1, surface.length - 1), rng.pick(fringe.noise ?? [surface[1]]));
-  // «бахрома» — нерівний низ поверхні (трава звисає на землю)
-  for (let x = 0; x < W; x++) {
-    const depth = rng.int(0, fringe.depth);
-    for (let d = 0; d < depth; d++) px(ctx, x, surface.length + d, d === depth - 1 ? fringe.dark : fringe.color);
-    if (depth === 0) px(ctx, x, surface.length, fringe.dark);
-  }
 }
 
 // Ряд хвойних силуетів (ліс на схилі). density — скільки дерев на ширину ~40 px.

@@ -245,14 +245,18 @@ export class World {
       b.vy = Math.min(b.vy, 30);
     }
 
-    if (r.crash && (this.phase === 'ride' || this.phase === 'finish') && !b.riderless) this.crash(r.crash);
+    // після фінішу падіння вже не рахуються — райдер просто докочується
+    if (r.crash && this.phase === 'ride' && !b.riderless) this.crash(r.crash);
     if (r.landing > 1.2 && this.phase !== 'countdown') {
       this.emit('land', { power: clamp(r.landing / 6, 0, 1) });
       if (r.landing > 3.2) this.shake = Math.max(this.shake, Math.min(4, r.landing * 0.6));
       const wh = b.rear.contact ? b.rear : b.front;
       if (wh.contact) this.dustBurst(wh.hx, wh.hy + b.P.R, Math.round(4 + r.landing * 2), wh.contact.mat);
     }
-    if (r.scrape && v > 2 * M) this.emit('scrape');
+    // скрегіт каретки об камінь — один звук на дотик, а не щокроку
+    const scraping = r.scrape && v > 2 * M;
+    if (scraping && !this.scraping) this.emit('scrape');
+    this.scraping = scraping;
 
     if (this.phase === 'ride' && !b.riderless) {
       this.trackTricks(dt, wasGrounded);

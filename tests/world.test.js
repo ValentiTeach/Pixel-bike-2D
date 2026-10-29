@@ -113,6 +113,26 @@ describe('заїзд', () => {
     }
   }, 120000);
 
+  it('після падіння на будь-якому чекпоінті траса прохідна з місця', () => {
+    for (const loc of LOCATIONS) {
+      const cps = level(loc).checkpoints.map((c) => c.x);
+      cps.forEach((cx, k) => {
+        const w = level(loc);
+        w.update(DT);
+        w.lastCheckpoint = cx;
+        for (const c of w.checkpoints) c.passed = c.x <= cx;
+        w.respawn();
+        const goal = cps[k + 1] ?? w.finishX;
+        for (let t = 0; t < 120 && w.bike.x < goal; t += DT) {
+          w.setInput(botInput(w));
+          w.update(DT);
+        }
+        expect(w.crashes, `${loc.id}: від чекпоінта ${k + 1}`).toBe(0);
+        expect(w.bike.x, `${loc.id}: від чекпоінта ${k + 1}`).toBeGreaterThanOrEqual(goal);
+      });
+    }
+  }, 120000);
+
   it('на важкій трасі проходять і інші велосипеди', () => {
     for (const bikeId of ['hardtail', 'downhill', 'ebike']) {
       const w = level(LOCATIONS[4], bikeId);

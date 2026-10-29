@@ -197,6 +197,11 @@ export class LevelGen {
 
   hint(x0, x1, v, min = 0, max = 99) {
     this.plan.push({ x0, x1, v, min, max });
+    // райдер пригальмовує на фічі — і виїжджає з неї повільніше, ніж «вільна» точкова модель
+    if (x1 >= this.x - 2 * M) {
+      this.vTyp = Math.min(this.vTyp, max);
+      this.vReach = Math.min(this.vReach, max + 1);
+    }
   }
 
   // ---------- Головний цикл ----------
@@ -283,8 +288,8 @@ export class LevelGen {
   rollers() {
     const s = this.size();
     const n = this.rng.int(3, 6);
-    const h = lerp(0.35, 0.8, s) * this.rng.range(0.85, 1.1);
-    const wl = this.rng.range(4.2, 6) + h * 1.5;
+    const h = lerp(0.3, 0.75, s) * this.rng.range(0.85, 1.1);
+    const wl = this.rng.range(5.5, 7.5) + h * 2;
     const y0 = this.y;
     const grade = this.grade() * 0.4;
     const x0 = this.x;
@@ -484,7 +489,7 @@ export class LevelGen {
   // Повалене дерево поперек стежки — колесо 29″ перекочує, але краще підстрибнути.
   log() {
     const s = this.size();
-    const r = lerp(0.16, 0.25, s) * this.rng.range(0.9, 1.1);
+    const r = lerp(0.1, 0.2, s) * this.rng.range(0.9, 1.1); // діаметр 20–44 см
     this.line(3, 0.02);
     const y0 = this.y;
     const cx = 0.6 + r;

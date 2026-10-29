@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MATRIX_SPRITES } from '../src/game/spriteData.js';
-import { PROCEDURAL_SPRITES } from '../src/game/proceduralSprites.js';
+import { DECOR_SPRITES } from '../src/game/decorSprites.js';
 import { parseMatrix, hasSprite, PREVIEW } from '../src/game/sprites.js';
 import { drawBikeRider, previewState, BIKE_FRAMES } from '../src/game/bikeSprite.js';
 import { SKINS } from '../src/game/skins.js';
@@ -29,7 +29,7 @@ describe('спрайти', () => {
   });
 
   it('процедурні спрайти мають додатні розміри', () => {
-    for (const [name, p] of Object.entries(PROCEDURAL_SPRITES)) {
+    for (const [name, p] of Object.entries(DECOR_SPRITES)) {
       expect(p.w, name).toBeGreaterThan(0);
       expect(p.h, name).toBeGreaterThan(0);
       expect(typeof p.draw).toBe('function');
