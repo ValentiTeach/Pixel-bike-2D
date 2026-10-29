@@ -1,40 +1,48 @@
-// Керування: клавіатура і сенсорні кнопки.
-//   ← / A — гальмувати, → / D — розганятися, Пробіл / ↑ / W — стрибок (довше тримаєш — вище стрибок).
-// Якщо натиснуто обидва напрямки — перемагає той, що натиснули останнім.
+// Керування як у мобільних MTB-іграх: педалі, гальмо, нахил назад/уперед, банні-хоп.
+//   ↑ / W — крутити педалі, ↓ / S — гальмо,
+//   ← / A — нахил назад (вілі, у повітрі — бекфліп), → / D — нахил уперед (у повітрі — фронтфліп),
+//   Пробіл — банні-хоп, R — повернутись на чекпоінт.
+// Сенсорні кнопки (TouchControls) викликають ті самі «кнопки» через setButton.
 
-const LEFT_KEYS = new Set(['ArrowLeft', 'KeyA']);
-const RIGHT_KEYS = new Set(['ArrowRight', 'KeyD']);
-const JUMP_KEYS = new Set(['Space', 'ArrowUp', 'KeyW', 'KeyZ']);
+const KEYS = {
+  pedal: new Set(['ArrowUp', 'KeyW']),
+  brake: new Set(['ArrowDown', 'KeyS']),
+  back: new Set(['ArrowLeft', 'KeyA']),
+  forward: new Set(['ArrowRight', 'KeyD']),
+  hop: new Set(['Space', 'KeyZ']),
+  respawn: new Set(['KeyR']),
+};
 
 export class Input {
   constructor() {
-    this.left = false;
-    this.right = false;
-    this.touchLeft = false;
-    this.touchRight = false;
-    this.jumpKey = false;
-    this.jumpTouch = false;
-    this.jumpPresses = 0;
-    this.last = 0;
+    this.keys = {};
+    this.touch = {};
+    this.presses = { hop: 0, respawn: 0 };
+    this.lastLean = 0;
     this.onKeyDown = (e) => {
-      if (LEFT_KEYS.has(e.code)) {
-        this.left = true;
-        this.last = -1;
-      } else if (RIGHT_KEYS.has(e.code)) {
-        this.right = true;
-        this.last = 1;
-      } else if (JUMP_KEYS.has(e.code)) {
-        if (!e.repeat && !this.jumpKey) this.jumpPresses += 1;
-        this.jumpKey = true;
-      } else return;
+      const btn = this.buttonOf(e.code);
+      if (!btn) return;
       e.preventDefault();
+      if (e.repeat) return;
+      this.press(btn, true, this.keys);
     };
     this.onKeyUp = (e) => {
-      if (LEFT_KEYS.has(e.code)) this.left = false;
-      else if (RIGHT_KEYS.has(e.code)) this.right = false;
-      else if (JUMP_KEYS.has(e.code)) this.jumpKey = false;
+      const btn = this.buttonOf(e.code);
+      if (btn) this.keys[btn] = false;
     };
     this.onBlur = () => this.clear();
+  }
+
+  buttonOf(code) {
+    for (const [btn, set] of Object.entries(KEYS)) if (set.has(code)) return btn;
+    return null;
+  }
+
+  press(btn, pressed, store) {
+    if (pressed && !store[btn] && (btn === 'hop' || btn === 'respawn')) this.presses[btn] += 1;
+    if (pressed && btn === 'back') this.lastLean = -1;
+    if (pressed && btn === 'forward') this.lastLean = 1;
+    store[btn] = pressed;
   }
 
   attach() {
@@ -49,38 +57,37 @@ export class Input {
     window.removeEventListener('blur', this.onBlur);
   }
 
-  setTouch(side, pressed) {
-    if (side < 0) this.touchLeft = pressed;
-    else this.touchRight = pressed;
-    if (pressed) this.last = side;
-  }
-
-  setJump(pressed) {
-    if (pressed && !this.jumpTouch) this.jumpPresses += 1;
-    this.jumpTouch = pressed;
+  // Сенсорна кнопка: 'pedal' | 'brake' | 'back' | 'forward' | 'hop'
+  setButton(btn, pressed) {
+    this.press(btn, pressed, this.touch);
   }
 
   clear() {
-    this.left = this.right = this.touchLeft = this.touchRight = this.jumpKey = this.jumpTouch = false;
-    this.jumpPresses = 0;
+    this.keys = {};
+    this.touch = {};
+    this.presses = { hop: 0, respawn: 0 };
   }
 
-  // -1 гальмо, 0, 1 розгін
-  direction() {
-    const l = this.left || this.touchLeft;
-    const r = this.right || this.touchRight;
-    if (l && r) return this.last;
-    return l ? -1 : r ? 1 : 0;
+  held(btn) {
+    return Boolean(this.keys[btn] || this.touch[btn]);
   }
 
-  jumpHeld() {
-    return this.jumpKey || this.jumpTouch;
+  // Стан для World.setInput. Якщо натиснуто обидва нахили — перемагає останній.
+  state() {
+    const back = this.held('back');
+    const fwd = this.held('forward');
+    let lean = 0;
+    if (back && fwd) lean = this.lastLean;
+    else if (back) lean = -1;
+    else if (fwd) lean = 1;
+    const hop = this.presses.hop > 0;
+    this.presses.hop = 0;
+    return { pedal: this.held('pedal') ? 1 : 0, brake: this.held('brake') ? 1 : 0, lean, hop };
   }
 
-  // Скільки разів натиснули стрибок з минулого кадру (і скидає лічильник).
-  consumeJumpPresses() {
-    const n = this.jumpPresses;
-    this.jumpPresses = 0;
-    return n;
+  consumeRespawn() {
+    const n = this.presses.respawn;
+    this.presses.respawn = 0;
+    return n > 0;
   }
 }

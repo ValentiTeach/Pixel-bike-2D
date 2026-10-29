@@ -3,54 +3,40 @@
 export const VIEW_W = 320;
 export const VIEW_H = 180;
 
-// Скільки ігрових пікселів = 1 метр дистанції.
-export const PX_PER_METER = 10;
+// Масштаб світу: 16 ігрових пікселів = 1 метр. Уся фізика рахується в справжніх одиницях
+// (кг, Н, Вт, м/с²) і лише переводиться в пікселі — тож велосипед поводиться «як у житті»:
+// колесо 29″ ≈ 12 px, база ≈ 20 px, райдер ≈ 28 px заввишки.
+export const PX_PER_M = 16;
+export const PX_PER_METER = PX_PER_M;
+export const GRAVITY = 9.81 * PX_PER_M; // px/с²
 
-// Рельєф: базова висота землі і крок «сходинки» платформи (px від верху екрана).
-export const GROUND_Y = 150;
-export const STEP_H = 18;
-export const MAX_LEVEL = 2; // 0 — земля, 1–2 — підняті платформи
+// Рельєф — висотне поле з кроком DX px (2 px = 12,5 см: видно корені й каміння).
+export const DX = 2;
 
 // Ширина плитки текстури землі та паралакс-шарів (мають бути безшовними по горизонталі).
-export const GROUND_TILE_W = 64;
-export const GROUND_TILE_H = 110;
+export const GROUND_TILE_W = 128;
+export const GROUND_TILE_H = 96;
 export const LAYER_W = 640;
+// Паралакс-шари малюються вищими за екран — щоб зсуватися вгору-вниз, коли траса йде схилом.
+export const LAYER_PAD = 48;
 
-// Гравець: розмір спрайта (вид збоку) та позиція на екрані.
-export const PLAYER_W = 26;
-export const PLAYER_H = 22;
-export const PLAYER_SCREEN_X = 72; // камера тримає велосипед ближче до лівого краю — видно, що попереду
-export const START_X = 40;
+// Камера: де на екрані тримати велосипед (ліворуч — щоб було видно трасу попереду).
+export const CAM_X = 104;
+export const CAM_Y = 92;
 
-// Хітбокс гравця (відступи від країв спрайта) — трохи менший за малюнок, щоб гра була чесною.
-export const PLAYER_HITBOX = { l: 4, t: 3, r: 4, b: 1 };
+// Полотно для малювання велосипедиста: квадрат з центром мас посередині — влазить при будь-якому куті.
+export const RIDER_CANVAS = { w: 64, h: 64, ox: 32, oy: 34 };
 
-// Фізика (px/с, px/с²).
-export const PHYSICS = {
-  gravity: 1000,
-  jumpV: 320, // висота стрибка ≈ jumpV² / 2g ≈ 51 px, час у повітрі ≈ 0.64 с
-  jumpCut: 230, // відпустив кнопку раніше — нижчий стрибок (мінімум ≈ 26 px навіть від короткого тапу)
-  coyote: 0.09, // ще можна стрибнути трохи після зʼїзду з краю
-  buffer: 0.13, // натискання стрибка трохи до приземлення запамʼятовується
-  accel: 240,
-  decel: 380,
-  boost: 1.35, // множник швидкості при «→»
-  brake: 0.4, // множник швидкості при «←»
-  slipAccel: 40,
-};
-export const AIR_TIME = (2 * PHYSICS.jumpV) / PHYSICS.gravity;
-export const JUMP_HEIGHT = (PHYSICS.jumpV * PHYSICS.jumpV) / (2 * PHYSICS.gravity);
-
-export const MAX_HEARTS = 3;
-export const INVULN_TIME = 1.6; // с невразливості після удару
-export const SHIELD_TIME = 7; // с дії щита
-export const SLOW_FACTOR = 0.5; // множник швидкості в калюжі/багні/піску
-export const SLOW_TIME = 0.35;
-export const SLIP_TIME = 1.1;
+// Таймінги заїзду.
 export const COUNTDOWN_TIME = 3;
-export const FINISH_TIME = 2.2; // с «переможного» проїзду після фінішу
-export const CRASH_TIME = 1.8; // с анімації падіння
+export const FINISH_TIME = 2.6; // с «переможного» накату після фінішу
+export const CRASH_TIME = 1.7; // с від падіння до відродження на чекпоінті
+export const RESPAWN_FREEZE = 0.45; // с «завмирання» після відродження — щоб роздивитися трасу
 
-// Максимальний крок симуляції — довгі кадри розбиваються на під-кроки (без «тунелювання»).
-export const MAX_STEP = 1 / 120;
+// Максимальний крок симуляції — довгі кадри розбиваються на під-кроки (стабільна підвіска й контакти).
+export const MAX_STEP = 1 / 240;
 export const MAX_FRAME_DT = 0.1;
+
+// Перевід км/год ↔ px/с.
+export const kmh = (pxPerSec) => (pxPerSec / PX_PER_M) * 3.6;
+export const fromKmh = (v) => (v / 3.6) * PX_PER_M;

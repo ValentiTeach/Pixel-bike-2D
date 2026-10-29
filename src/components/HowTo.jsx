@@ -1,9 +1,11 @@
 import TopBar from './TopBar.jsx';
 import Icon from './Icon.jsx';
 import { SpriteIcon, BikeIcon } from './SpriteIcon.jsx';
-import { LOCATIONS } from '../game/locations.js';
-import { ENTITY_TYPES } from '../game/entities.js';
+import { DifficultyMark } from './LevelSelect.jsx';
+import { LOCATIONS, DIFFICULTY } from '../game/locations.js';
 import { getSkin } from '../game/skins.js';
+import { getBike } from '../game/bikes.js';
+import { formatTime } from '../game/storage.js';
 
 const Row = ({ icon, children }) => (
   <li className="row">
@@ -22,8 +24,8 @@ export default function HowTo({ save, onBack }) {
         <section className="card">
           <h3>Мета</h3>
           <ul>
-            <Row icon={<BikeIcon skin={getSkin(save.skin)} scale={0.5} />}>
-              Велосипед їде вправо сам. Перестрибуй перешкоди і ями, заїжджай на уступи, керуй швидкістю й доїдь до фінішу.
+            <Row icon={<BikeIcon bike={getBike(save.bike)} skin={getSkin(save.skin)} scale={0.45} />}>
+              Спустись трасою до фінішу якнайшвидше. Велосипед не їде сам: крути педалі, гальмуй, переносячи вагу, і приземлюйся на обидва колеса.
             </Row>
           </ul>
         </section>
@@ -33,80 +35,85 @@ export default function HowTo({ save, onBack }) {
           <ul className="keys">
             <li>
               <span>
-                <Key>Пробіл</Key> <Key>↑</Key> <Key>W</Key>
+                <Key>↑</Key> <Key>W</Key>
               </span>
-              <span>стрибок, тримай — вище</span>
+              <span>крутити педалі</span>
             </li>
             <li>
               <span>
-                <Key>
-                  <Icon name="arrowLeft" size="1em" />
-                </Key>{' '}
-                <Key>A</Key>
+                <Key>↓</Key> <Key>S</Key>
               </span>
-              <span>гальмо</span>
+              <span>гальмо (обидва колеса)</span>
             </li>
             <li>
               <span>
-                <Key>
-                  <Icon name="arrowRight" size="1em" />
-                </Key>{' '}
-                <Key>D</Key>
+                <Key>←</Key> <Key>A</Key>
               </span>
-              <span>розгін, стоячи на педалях</span>
+              <span>нахил назад: вілі, у повітрі — бекфліп</span>
             </li>
             <li>
               <span>
-                <Key>Esc</Key> <Key>P</Key>
+                <Key>→</Key> <Key>D</Key>
               </span>
-              <span>пауза</span>
+              <span>нахил уперед: стопі, у повітрі — фронтфліп</span>
+            </li>
+            <li>
+              <span>
+                <Key>Пробіл</Key>
+              </span>
+              <span>банні-хоп (через колоду чи з губи трампліна)</span>
+            </li>
+            <li>
+              <span>
+                <Key>R</Key>
+              </span>
+              <span>повернутись на чекпоінт</span>
             </li>
             <li>
               <span>
                 <Icon name="phone" />
               </span>
-              <span>зліва — гальмо й розгін, справа — стрибок</span>
+              <span>зліва — нахил, справа — гальмо, педалі й хоп</span>
             </li>
           </ul>
         </section>
 
         <section className="card">
-          <h3>Бонуси</h3>
+          <h3>Фізика як у житті</h3>
           <ul>
-            <Row icon={<SpriteIcon name="coin" box={9} />}>Монети — валюта гаража. Дуга з монет показує, де стрибати.</Row>
-            <Row icon={<SpriteIcon name="heart" box={9} />}>Серце — +1 життя (максимум 3, інакше +5 монет).</Row>
-            <Row icon={<SpriteIcon name="shield" box={9} />}>Щит — 7 секунд захисту, розбиває одну перешкоду.</Row>
+            <Row icon={<Icon name="gauge" />}>Підвіска стискається на приземленні. Якщо впасти з висоти на рівне — «пробій» і падіння.</Row>
+            <Row icon={<Icon name="mountain" />}>Приземляйся на схил приземлення паралельно до нього — так м'якше. Біля краю дропа відкинься назад.</Row>
+            <Row icon={<Icon name="brake" />}>Різко гальмуєш переднім колесом під гору — перелетиш через кермо. Нахились назад.</Row>
+            <Row icon={<Icon name="snowflake" />}>Зчеплення залежить від покриття: камінь і бетон тримають, сніг гірше, лід майже ні. Пісок і багно гальмують колеса.</Row>
+            <Row icon={<SpriteIcon name="signGap" box={12} />}>Жовті знаки попереджають про тейбл, дроп чи геп. Дуга монет показує правильну швидкість.</Row>
           </ul>
         </section>
 
         <section className="card">
-          <h3>Небезпеки</h3>
+          <h3>Трюки</h3>
           <ul>
-            <Row icon={<SpriteIcon name="puddle" box={14} />}>Калюжа, багно, пісок — сповільнюють.</Row>
-            <Row icon={<SpriteIcon name="ice" box={14} />}>Лід і олія — велосипед котиться сам, гальма не працюють.</Row>
-            <Row icon={<SpriteIcon name="bird" box={11} />}>Птахи летять на висоті стрибка — проїжджай під ними.</Row>
-            <Row icon={<span className="pit-icon" />}>Яма — мінус життя, повернешся трохи назад.</Row>
+            <Row icon={<Icon name="flip" />}>Бекфліп і фронтфліп — тримай нахил у повітрі й приземлись на колеса. Подвійний — учетверо більше очок.</Row>
+            <Row icon={<Icon name="clock" />}>Політ довше секунди, вілі й стопі, чисте приземлення (×1.25).</Row>
+            <Row icon={<SpriteIcon name="coin" box={9} />}>Кожні 250 очок — монета на фініші. Монети — валюта гаража.</Row>
           </ul>
         </section>
 
         <section className="card">
           <h3>Зірки</h3>
-          <p>Скільки сердець лишилось на фініші — стільки зірок. Пройдений рівень відкриває наступну локацію і нескінченний режим.</p>
+          <p>Зірки дають за час: фініш — одна, «срібний» час — дві, «золотий» — три. Падіння коштує часу: повертаєшся на останній чекпоінт.</p>
         </section>
 
         <section className="card">
-          <h3>Локації</h3>
+          <h3>Траси</h3>
           <ul>
             {LOCATIONS.map((l) => (
               <li key={l.id} className="loc-row">
                 <span className="loc-row__name">
-                  <span className="dot" style={{ background: l.theme.accent }} />
+                  <DifficultyMark level={l.difficulty} />
                   {l.name}
                 </span>
-                <span className="loc-row__icons">
-                  {[...l.obstacles, ...l.movers, ...l.flyers, ...l.hazards].map((o) => (
-                    <SpriteIcon key={o.type} name={ENTITY_TYPES[o.type].sprites[0]} box={12} />
-                  ))}
+                <span className="loc-row__icons muted">
+                  {DIFFICULTY[l.difficulty].label} · {l.lengthM} м · <Icon name="star" fill size="0.9em" /> {formatTime(l.times.gold)}
                 </span>
               </li>
             ))}

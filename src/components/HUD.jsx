@@ -1,22 +1,33 @@
 import Icon from './Icon.jsx';
-import { MAX_HEARTS } from '../game/constants.js';
+import { formatTime } from '../game/storage.js';
 
+// Ігровий HUD: час і падіння зліва, смуга прогресу з чекпоінтами, монети й очки справа,
+// швидкість унизу. Тости трюків і чекпоінтів показує GameScreen.
 export default function HUD({ hud, mode, onPause }) {
+  const level = mode === 'level';
   return (
     <div className="hud">
       <div className="hud__top">
         <div className="hud__group">
-          <div className="hud__hearts" aria-label={`Життя: ${hud.hearts}`}>
-            {Array.from({ length: MAX_HEARTS }, (_, i) => (
-              <Icon key={i} name="heart" fill={i < hud.hearts} className={i < hud.hearts ? 'is-full' : 'is-lost'} />
-            ))}
-          </div>
+          <span className="pill pill--time" aria-label={`Час ${formatTime(hud.time)}`}>
+            <Icon name="clock" />
+            <span className="mono">{formatTime(hud.time)}</span>
+          </span>
+          {hud.crashes > 0 && (
+            <span className="pill pill--crash" aria-label={`Падінь: ${hud.crashes}`}>
+              <Icon name="crash" />
+              {hud.crashes}
+            </span>
+          )}
         </div>
 
-        {mode === 'level' ? (
+        {level ? (
           <div className="hud__progress" aria-label={`Пройдено ${hud.distanceM} з ${hud.lengthM} м`}>
             <div className="hud__track">
               <div className="hud__fill" style={{ width: `${hud.progress * 100}%` }} />
+              {hud.checkpoints.map((c, i) => (
+                <span key={i} className={`hud__cp ${c.passed ? 'is-passed' : ''}`} style={{ left: `${c.at * 100}%` }} />
+              ))}
             </div>
             <span className="hud__meters">
               {hud.distanceM}
@@ -31,6 +42,14 @@ export default function HUD({ hud, mode, onPause }) {
         )}
 
         <div className="hud__group hud__group--right">
+          {hud.score > 0 && (
+            <span className="pill pill--score" aria-label={`Очки за трюки: ${hud.score}`}>
+              <Icon name="flip" />
+              <span key={hud.score} className="pop">
+                {hud.score}
+              </span>
+            </span>
+          )}
           <span className="pill pill--coin" aria-label={`Монети: ${hud.coins}`}>
             <Icon name="coin" />
             <span key={hud.coins} className="pop">
@@ -46,26 +65,6 @@ export default function HUD({ hud, mode, onPause }) {
       <div className="hud__bottom">
         <span className="hud__speed">
           <strong>{hud.speedKmh}</strong> км/год
-        </span>
-        <span className="hud__effects">
-          {hud.shield > 0 && (
-            <span className="pill pill--shield">
-              <Icon name="shield" />
-              <span className="mini-bar">
-                <span style={{ width: `${hud.shield * 100}%` }} />
-              </span>
-            </span>
-          )}
-          {hud.slow && (
-            <span className="pill">
-              <Icon name="droplet" /> Повільно
-            </span>
-          )}
-          {hud.slip && (
-            <span className="pill">
-              <Icon name="snowflake" /> Слизько
-            </span>
-          )}
         </span>
       </div>
     </div>

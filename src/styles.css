@@ -268,6 +268,76 @@ button {
   color: #67e8f9;
 }
 
+.pill--crash .icon {
+  color: var(--danger);
+}
+
+.pill--score .icon {
+  color: #67e8f9;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+  min-width: 3.4em;
+}
+
+/* Значки складності трас: зелене коло, синій квадрат, червоний квадрат, чорний ромб, два ромби */
+.diff {
+  display: inline-block;
+  position: relative;
+  width: 0.62em;
+  height: 0.62em;
+  margin: 0 0.3em 0.08em 0.1em;
+  vertical-align: middle;
+}
+
+.diff--green {
+  border-radius: 50%;
+  background: #34c759;
+}
+
+.diff--blue {
+  background: #2f7cf6;
+}
+
+.diff--red {
+  background: #ff3b3b;
+}
+
+.diff--black,
+.diff--double {
+  background: #f4f5f7;
+  transform: rotate(45deg) scale(0.85);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.diff--black {
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.diff--double {
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7), 0.55em -0.55em 0 0 #111, 0.55em -0.55em 0 1px rgba(255, 255, 255, 0.7);
+  margin-right: 0.75em;
+}
+
+.chips--features {
+  flex-wrap: wrap;
+  gap: 0.3em;
+  margin: 0.2em 0 0.6em;
+}
+
+.chip {
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  background: var(--fill-1);
+  border: 1px solid var(--line);
+  font-size: 0.7em;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
 .mini-bar {
   width: 3.2em;
   height: 0.3em;
@@ -315,11 +385,15 @@ button {
 .stars {
   display: inline-flex;
   gap: 0.2em;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .stars__item.is-on {
   color: var(--accent);
+}
+
+.modal .stars {
+  justify-content: center;
 }
 
 .stars--animate .stars__item {
@@ -794,7 +868,7 @@ button {
   justify-content: center;
   overflow: hidden;
   border-radius: var(--radius);
-  background: linear-gradient(#3f8ee0, #8cc6f2);
+  background: linear-gradient(#5f9fd4, #a3c9e4 70%, #dfe9ea);
 }
 
 .garage__ground {
@@ -803,24 +877,30 @@ button {
   right: 0;
   bottom: 0;
   height: calc(var(--u) * 16);
-  background: repeating-linear-gradient(90deg, #9ad848 0 calc(var(--u) * 6), #7ac83a calc(var(--u) * 6) calc(var(--u) * 8)) 0 0 / 100%
-      calc(var(--u) * 4) no-repeat,
-    repeating-linear-gradient(90deg, #a8683a 0 calc(var(--u) * 10), #c98a50 calc(var(--u) * 10) calc(var(--u) * 14)) 0 0;
-  animation: ground-scroll 0.5s linear infinite;
+  background: linear-gradient(#b08a5e 0 calc(var(--u) * 1), #8a6844 calc(var(--u) * 1) calc(var(--u) * 3), #664a30 calc(var(--u) * 3)) 0 0 / 100% 100% no-repeat,
+    #664a30;
+}
+
+.garage__ground::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * 4) 0 0;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(var(--u) * 9), rgba(0, 0, 0, 0.12) calc(var(--u) * 9) calc(var(--u) * 11), transparent calc(var(--u) * 11) calc(var(--u) * 23));
+  animation: ground-scroll 0.6s linear infinite;
 }
 
 @keyframes ground-scroll {
   from {
-    background-position: 0 0, 0 0;
+    background-position: 0 0;
   }
   to {
-    background-position: calc(var(--u) * -8) 0, calc(var(--u) * -14) 0;
+    background-position: calc(var(--u) * -23) 0;
   }
 }
 
 .garage__bike {
   position: relative;
-  margin-bottom: calc(var(--u) * 15);
+  margin-bottom: calc(var(--u) * 11.5);
 }
 
 .garage__grid {
@@ -880,13 +960,14 @@ button {
 .garage__info {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 1.4em;
+  justify-content: flex-start;
+  padding: 1.1em 1.3em;
+  overflow-y: auto;
 }
 
 .garage__name {
   margin: 0.2em 0 0;
-  font-size: 1.8em;
+  font-size: 1.5em;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
@@ -895,9 +976,87 @@ button {
   display: flex;
   align-items: center;
   gap: 0.35em;
-  margin: 0.3em 0 1.2em;
+  margin: 0.6em 0 0.8em;
   color: var(--text-2);
   font-weight: 600;
+}
+
+.garage__desc {
+  margin: 0.4em 0 0.6em;
+  font-size: 0.8em;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.garage__specs {
+  margin: 0.4em 0 0;
+  font-size: 0.72em;
+  font-weight: 600;
+}
+
+.garage__grid--bikes .skin__swatch {
+  border-radius: 0.35em;
+  transform: skewX(-12deg);
+}
+
+.stats {
+  display: grid;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.74em;
+}
+
+.stats li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8em;
+  color: var(--text-2);
+}
+
+.stats__bar {
+  display: flex;
+  gap: 0.2em;
+}
+
+.stats__bar span {
+  width: 1.4em;
+  height: 0.38em;
+  border-radius: 999px;
+  background: var(--fill-2);
+}
+
+.stats__bar .is-on {
+  background: var(--accent);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.3em;
+  padding: 0.25em;
+  border-radius: 999px;
+  background: var(--fill-1);
+  border: 1px solid var(--line);
+  align-self: flex-start;
+}
+
+.tabs__tab {
+  padding: 0.35em 1em;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.8em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.tabs__tab.is-active {
+  background: #fff;
+  color: #111;
 }
 
 .garage__msg {
@@ -1094,8 +1253,26 @@ button {
   height: 0.32em;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.22);
-  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.hud__track {
+  position: relative;
+}
+
+.hud__cp {
+  position: absolute;
+  top: 50%;
+  width: 0.5em;
+  height: 0.5em;
+  margin: -0.25em 0 0 -0.25em;
+  border-radius: 50%;
+  background: #ff9f1a;
+  box-shadow: 0 0 0 2px rgba(10, 12, 18, 0.45);
+}
+
+.hud__cp.is-passed {
+  background: var(--success);
 }
 
 .hud__fill {
@@ -1152,7 +1329,7 @@ button {
 .hud__bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .hud__speed {
@@ -1173,58 +1350,140 @@ button {
   gap: 0.4em;
 }
 
-/* ---------- Сенсорні зони ---------- */
+/* ---------- Сенсорні кнопки (як у мобільних MTB-іграх) ---------- */
 
 .touch {
   position: absolute;
-  inset: 3.6em 0 0 0;
+  inset: auto 0 0 0;
   z-index: 2;
   display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 1.4em 1.4em;
+  pointer-events: none;
 }
 
-.touch__zone {
+.touch__group {
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 2.6em;
-  touch-action: none;
+  gap: 0.8em;
+  pointer-events: auto;
 }
 
-.touch__zone--brake,
-.touch__zone--boost {
-  flex: 0 0 18%;
-}
-
-.touch__zone--jump {
-  flex: 1;
-  justify-content: flex-end;
-  padding-right: 2.2em;
+.touch__group--right {
+  position: relative;
 }
 
 .touch__btn {
   display: grid;
   place-items: center;
-  width: 3.4em;
-  height: 3.4em;
+  width: 4em;
+  height: 4em;
   border-radius: 50%;
-  background: rgba(10, 12, 18, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 12, 18, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 1.1em;
-  transition: transform 0.12s var(--ease), background 0.12s;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1.15em;
+  touch-action: none;
+  transition: transform 0.1s var(--ease), background 0.1s, color 0.1s;
 }
 
-.touch__btn--jump {
-  width: 4.4em;
-  height: 4.4em;
-  font-size: 1.4em;
+.touch.is-visible .touch__btn {
+  background: rgba(10, 12, 18, 0.38);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.touch__zone.is-active .touch__btn {
-  transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.28);
+.touch__btn--pedal {
+  width: 4.6em;
+  height: 4.6em;
+  font-size: 1.35em;
+}
+
+.touch__btn--hop {
+  position: absolute;
+  right: 0.4em;
+  bottom: 5.6em;
+  width: 3em;
+  height: 3em;
+}
+
+.touch__btn.is-active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* ---------- Тости: трюки, чекпоінти, падіння ---------- */
+
+.toasts {
+  position: absolute;
+  top: 3.4em;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 0.35em 0.9em;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  animation: toast-in 0.35s var(--ease), toast-out 0.4s ease-in 1.5s forwards;
+}
+
+.toast__title {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.toast__sub {
+  font-size: 0.82em;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.toast--trick .toast__title {
+  color: var(--accent);
+}
+
+.toast--trick .toast__sub {
+  color: #fff;
+}
+
+.toast--cp .toast__title {
+  color: var(--success);
+}
+
+.toast--crash .toast__title {
+  color: var(--danger);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.6em) scale(0.92);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.4em);
+  }
 }
 
 /* ---------- Відлік ---------- */
@@ -1293,6 +1552,18 @@ button {
   margin-top: 1em !important;
   font-size: 0.85em;
   color: rgba(255, 255, 255, 0.85);
+}
+
+.countdown__tip {
+  max-width: 26em;
+  margin-top: 0.7em !important;
+  padding: 0.4em 0.9em;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.5);
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-2);
+  text-align: center;
 }
 
 .countdown__hint .sep {
@@ -1497,4 +1768,46 @@ button {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------- Результат ---------- */
+
+.result__targets {
+  display: flex;
+  justify-content: center;
+  gap: 1em;
+  margin: 0.2em 0 0.4em;
+  font-size: 0.78em;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.result__targets span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.result__targets .is-hit {
+  color: var(--accent);
+}
+
+.result__extra {
+  margin: 0.4em 0 0;
+  font-size: 0.72em;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.result__extra strong {
+  color: var(--text-2);
+}
+
+.result__extra .sep {
+  display: inline-block;
+  width: 1px;
+  height: 0.8em;
+  margin: 0 0.6em;
+  background: var(--line);
+  vertical-align: middle;
 }

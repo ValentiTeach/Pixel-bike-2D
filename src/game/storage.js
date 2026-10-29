@@ -1,9 +1,15 @@
 // Збереження прогресу в localStorage. Усі функції, що змінюють сейв, — чисті
 // (повертають новий об'єкт), тож їх зручно тестувати і використовувати в React-стані.
+//
+// Версія 2 (MTB): велосипеди гаража, найкращий час і зірки за час на кожній трасі,
+// рекорди фрірайду (дистанція й очки за трюки). Старі сейви v1 мігрують автоматично:
+// монети, скіни й відкриті локації зберігаються.
 import { LOCATIONS } from './locations.js';
 import { SKINS } from './skins.js';
+import { BIKES } from './bikes.js';
 
 export const SAVE_KEY = 'pixel-bike-2d/save/v1';
+export const SAVE_VERSION = 2;
 
 export const DEFAULT_SETTINGS = {
   music: true,
@@ -15,13 +21,15 @@ export const DEFAULT_SETTINGS = {
 
 export function defaultSave() {
   return {
-    version: 1,
+    version: SAVE_VERSION,
     coins: 0,
     totalCoins: 0,
     runs: 0,
-    progress: {}, // [locationId]: { completed, stars, bestDistance, bestEndless }
+    progress: {}, // [locationId]: { completed, stars, bestTime, bestDistance, bestEndless, bestScore }
     ownedSkins: ['classic'],
     skin: 'classic',
+    ownedBikes: ['trail'],
+    bike: 'trail',
     lastLocation: LOCATIONS[0].id,
     settings: { ...DEFAULT_SETTINGS },
   };
@@ -31,14 +39,30 @@ export function defaultSave() {
 export function normalizeSave(raw) {
   const base = defaultSave();
   if (!raw || typeof raw !== 'object') return base;
+  const known = (list, ids, first) => [...new Set([first, ...(Array.isArray(list) ? list : [])])].filter((id) => ids.includes(id));
   const save = {
     ...base,
     ...raw,
+    version: SAVE_VERSION,
     settings: { ...base.settings, ...(raw.settings || {}) },
-    progress: { ...(raw.progress || {}) },
-    ownedSkins: Array.isArray(raw.ownedSkins) ? [...new Set(['classic', ...raw.ownedSkins])] : base.ownedSkins,
+    progress: {},
+    ownedSkins: known(raw.ownedSkins, SKINS.map((s) => s.id), 'classic'),
+    ownedBikes: known(raw.ownedBikes, BIKES.map((b) => b.id), 'trail'),
   };
+  for (const [id, p] of Object.entries(raw.progress || {})) {
+    if (!LOCATIONS.some((l) => l.id === id) || !p || typeof p !== 'object') continue;
+    save.progress[id] = {
+      completed: Boolean(p.completed),
+      // зірки v1 давались за серця — у v2 вони за час, тож старі не переносимо
+      stars: (raw.version ?? 1) >= 2 ? Math.max(0, Math.min(3, Math.floor(Number(p.stars) || 0))) : 0,
+      bestTime: Number(p.bestTime) > 0 ? Number(p.bestTime) : null,
+      bestDistance: Math.max(0, Math.floor(Number(p.bestDistance) || 0)),
+      bestEndless: Math.max(0, Math.floor(Number(p.bestEndless) || 0)),
+      bestScore: Math.max(0, Math.floor(Number(p.bestScore) || 0)),
+    };
+  }
   if (!save.ownedSkins.includes(save.skin)) save.skin = 'classic';
+  if (!save.ownedBikes.includes(save.bike)) save.bike = 'trail';
   if (!LOCATIONS.some((l) => l.id === save.lastLocation)) save.lastLocation = LOCATIONS[0].id;
   save.coins = Math.max(0, Math.floor(Number(save.coins) || 0));
   return save;
@@ -61,7 +85,8 @@ export function writeSave(save, storage = globalThis.localStorage) {
   }
 }
 
-export const getProgress = (save, id) => save.progress[id] ?? { completed: false, stars: 0, bestDistance: 0, bestEndless: 0 };
+export const getProgress = (save, id) =>
+  save.progress[id] ?? { completed: false, stars: 0, bestTime: null, bestDistance: 0, bestEndless: 0, bestScore: 0 };
 
 export function isUnlocked(save, index) {
   if (index <= 0) return true;
@@ -70,7 +95,7 @@ export function isUnlocked(save, index) {
 
 /**
  * Застосовує результат заїзду до сейву.
- * @returns {{ save, newBest: boolean, unlocked: string|null, starsGained: number }}
+ * @returns {{ save, newBest: boolean, unlocked: string|null, starsGained: number, earned: number }}
  */
 export function applyRunResult(save, result) {
   const prev = getProgress(save, result.locationId);
@@ -84,30 +109,33 @@ export function applyRunResult(save, result) {
       next.bestEndless = result.distanceM;
       newBest = true;
     }
+    if ((result.score ?? 0) > (prev.bestScore ?? 0)) next.bestScore = result.score;
   } else {
-    if (result.distanceM > prev.bestDistance) {
-      next.bestDistance = result.distanceM;
-      newBest = !prev.completed;
-    }
+    if (result.distanceM > prev.bestDistance) next.bestDistance = result.distanceM;
     if (result.completed) {
       if (!prev.completed) {
         const idx = LOCATIONS.findIndex((l) => l.id === result.locationId);
         unlocked = LOCATIONS[idx + 1]?.id ?? null;
       }
       next.completed = true;
+      if (!prev.bestTime || result.time < prev.bestTime) {
+        next.bestTime = result.time;
+        newBest = true;
+      }
       if (result.stars > prev.stars) {
         starsGained = result.stars - prev.stars;
         next.stars = result.stars;
-        newBest = true;
       }
     }
+    if ((result.score ?? 0) > (prev.bestScore ?? 0)) next.bestScore = result.score;
   }
+  const earned = (result.coins ?? 0) + (result.trickCoins ?? 0);
 
   return {
     save: {
       ...save,
-      coins: save.coins + result.coins,
-      totalCoins: (save.totalCoins || 0) + result.coins,
+      coins: save.coins + earned,
+      totalCoins: (save.totalCoins || 0) + earned,
       runs: (save.runs || 0) + 1,
       lastLocation: result.locationId,
       progress: { ...save.progress, [result.locationId]: next },
@@ -115,6 +143,7 @@ export function applyRunResult(save, result) {
     newBest,
     unlocked,
     starsGained,
+    earned,
   };
 }
 
@@ -124,6 +153,20 @@ export function buySkin(save, skinId) {
   return { ...save, coins: save.coins - skin.price, ownedSkins: [...save.ownedSkins, skinId], skin: skinId };
 }
 
+export function buyBike(save, bikeId) {
+  const bike = BIKES.find((b) => b.id === bikeId);
+  if (!bike || save.ownedBikes.includes(bikeId) || save.coins < bike.price) return null;
+  return { ...save, coins: save.coins - bike.price, ownedBikes: [...save.ownedBikes, bikeId], bike: bikeId };
+}
+
 export function totalStars(save) {
   return LOCATIONS.reduce((sum, l) => sum + getProgress(save, l.id).stars, 0);
+}
+
+// Час у форматі «1:23.4».
+export function formatTime(sec) {
+  if (sec === null || sec === undefined || !Number.isFinite(sec)) return '—';
+  const m = Math.floor(sec / 60);
+  const s = sec - m * 60;
+  return `${m}:${s < 10 ? '0' : ''}${s.toFixed(1)}`;
 }

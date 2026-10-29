@@ -1,7 +1,6 @@
-// Хелпери для фонів виду збоку: дизерингове небо, паралакс-шари (гори, пагорби, місто,
-// хмари, ряди дерев) і безшовна текстура землі з травою та камінням — як у класичних платформерах.
+// Хелпери для фонів виду збоку: дизерингове небо і паралакс-шари (гори, пагорби, місто,
+// хмари, ліс, скелі каньйону, море). Текстури покриттів траси — у groundTextures.js.
 // Усі шари безшовні по горизонталі: періодичні функції + «загортання» об'єктів через край.
-import { getSprite, spriteSize } from './sprites.js';
 
 export const px = (ctx, x, y, c, w = 1, h = 1) => {
   ctx.fillStyle = c;
@@ -130,20 +129,6 @@ export function clouds(ctx, rng, { W, yMin, yMax, count, color, shade }) {
   }
 }
 
-// Ряд спрайтів (дерева, кактуси, пальми), вирівняних по лінії base.
-export function spriteRow(ctx, rng, { W, base, items, gap = [4, 20], tint = null }) {
-  let x = rng.int(0, 10);
-  while (x < W) {
-    const item = rng.weighted(items);
-    const img = getSprite(item.sprite, tint ? { silhouette: tint } : {});
-    const { w, h } = spriteSize(item.sprite);
-    const y = base - h + rng.int(0, 2);
-    ctx.drawImage(img, x, y);
-    if (x + w > W) ctx.drawImage(img, x - W, y);
-    x += w + rng.int(gap[0], gap[1]);
-  }
-}
-
 // Море з відблисками.
 export function sea(ctx, rng, { W, H, y, colors, sparkle }) {
   px(ctx, 0, y, colors[0], W, H - y);
@@ -157,57 +142,87 @@ export function sea(ctx, rng, { W, H, y, colors, sparkle }) {
   for (let i = 0; i < 120; i++) px(ctx, rng.int(0, W - 1), rng.int(y + 2, H - 1), sparkle, rng.int(2, 5), 1);
 }
 
-/**
- * Безшовна текстура землі: поверхня (трава/пісок/сніг/асфальт) з «бахромою» знизу
- * і ґрунт з округлими каменями, як у класичних піксельних платформерах.
- */
-export function groundTexture(ctx, rng, { W, H, surface, fringe, body, bodyNoise, rocks = null, layers = null }) {
-  px(ctx, 0, 0, body, W, H);
-  if (layers) {
-    // горизонтальні пласти (пісковик, лід)
-    let y = surface.length + 2;
-    let i = 0;
-    while (y < H) {
-      const t = rng.int(4, 9);
-      const p = rng.range(0, Math.PI * 2);
-      for (let x = 0; x < W; x++) {
-        const off = Math.round(Math.sin((x / W) * Math.PI * 2 * 2 + p) * 1.5);
-        px(ctx, x, y + off, layers[i % layers.length], 1, t);
-      }
-      y += t;
-      i++;
-    }
-  }
-  for (let i = 0; i < W * H * 0.08; i++) px(ctx, rng.int(0, W - 1), rng.int(surface.length, H - 1), rng.pick(bodyNoise));
-
-  if (rocks) {
-    const n = Math.round((W * H) / rocks.density);
-    for (let i = 0; i < n; i++) {
-      const cx = rng.int(0, W - 1);
-      const cy = rng.int(surface.length + 4, H - 4);
-      const rx = rng.range(3, 8);
-      const ry = rng.range(2.5, 5);
-      for (let y = -Math.ceil(ry); y <= Math.ceil(ry); y++) {
-        for (let x = -Math.ceil(rx); x <= Math.ceil(rx); x++) {
-          const d = (x / rx) ** 2 + (y / ry) ** 2;
-          if (d > 1) continue;
-          let c = rocks.mid;
-          if (d > 0.7 && x + y > 0) c = rocks.dark;
-          else if (d > 0.55 && x + y < 0) c = rocks.light;
-          else if (x + y < -rx * 0.6 && d < 0.5) c = rocks.light;
-          px(ctx, (((cx + x) % W) + W) % W, cy + y, c);
-        }
-      }
-    }
-  }
-
-  // поверхня
-  surface.forEach((c, i) => px(ctx, 0, i, c, W, 1));
-  for (let i = 0; i < W * 0.6; i++) px(ctx, rng.int(0, W - 1), rng.int(1, surface.length - 1), rng.pick(fringe.noise ?? [surface[1]]));
-  // «бахрома» — нерівний низ поверхні (трава звисає на землю)
+// Ряд хвойних силуетів (ліс на схилі). density — скільки дерев на ширину ~40 px.
+export function forestRow(ctx, rng, { W, H, base, color, dark, minH, maxH, density = 1, trunks = null, snow = null }) {
+  // «земля» шару — хвилястий схил під деревами
+  const p = rng.range(0, Math.PI * 2);
   for (let x = 0; x < W; x++) {
-    const depth = rng.int(0, fringe.depth);
-    for (let d = 0; d < depth; d++) px(ctx, x, surface.length + d, d === depth - 1 ? fringe.dark : fringe.color);
-    if (depth === 0) px(ctx, x, surface.length, fringe.dark);
+    const y = Math.round(base - 6 - 4 * Math.sin((x / W) * Math.PI * 4 + p) - 2 * Math.sin((x / W) * Math.PI * 10 + p * 2));
+    px(ctx, x, y, color, 1, H - y);
+  }
+  let x = rng.int(0, 8);
+  while (x < W + 20) {
+    const h = rng.int(minH, maxH);
+    const half = Math.max(3, Math.round(h * rng.range(0.18, 0.26)));
+    const cx = x;
+    const top = base - h;
+    for (let y = 0; y < h; y++) {
+      const k = y / h;
+      // ярусні «лапи»: ширина пульсує
+      const tier = 0.75 + 0.25 * Math.sin(y * 0.9);
+      const span = Math.max(1, Math.round(half * k * tier + (y > h - 3 ? 0 : 0)));
+      for (let dx = -span; dx <= span; dx++) {
+        const xx = (((cx + dx) % W) + W) % W;
+        let c = dx > span * 0.3 ? dark : color;
+        if (snow && (y < 2 || (Math.sin(y * 0.9) > 0.85 && dx < 0))) c = snow;
+        px(ctx, xx, top + y, c);
+      }
+    }
+    if (trunks) px(ctx, (((cx) % W) + W) % W, base - 4, trunks, 1, 4);
+    x += Math.round(rng.int(half, half * 3) / density);
+  }
+}
+
+// Скелі каньйону / прибережні кручі: плоскі верхівки, стрімкі стіни, горизонтальні пласти.
+export function canyonWall(ctx, rng, { W, H, base, color, light, dark, minH, maxH, grass = null }) {
+  let x = 0;
+  const tops = [];
+  while (x < W) {
+    const w = rng.int(30, 90);
+    tops.push({ x, w, h: rng.int(minH, maxH) });
+    x += w;
+  }
+  const last = tops[tops.length - 1];
+  last.w = W - last.x;
+  const heightAt = (xx) => {
+    for (let i = 0; i < tops.length; i++) {
+      const t = tops[i];
+      if (xx >= t.x && xx < t.x + t.w) {
+        const edgeL = xx - t.x;
+        const edgeR = t.x + t.w - xx;
+        const prev = tops[(i - 1 + tops.length) % tops.length].h;
+        const next = tops[(i + 1) % tops.length].h;
+        let h = t.h;
+        if (edgeL < 6) h = Math.round(prev + (t.h - prev) * (edgeL / 6) ** 0.5);
+        if (edgeR < 6) h = Math.round(next + (t.h - next) * (edgeR / 6) ** 0.5);
+        return h;
+      }
+    }
+    return minH;
+  };
+  for (let xx = 0; xx < W; xx++) {
+    const h = heightAt(xx);
+    const y0 = base - h;
+    const slopeL = heightAt((xx + W - 1) % W) < h;
+    const slopeR = heightAt((xx + 1) % W) < h;
+    for (let y = y0; y < H; y++) {
+      const layer = Math.floor((y - y0 + (xx % 7 === 0 ? 1 : 0)) / 5) % 3;
+      let c = layer === 1 ? light : color;
+      if (layer === 2) c = dark;
+      if (slopeR && y - y0 < 40) c = dark;
+      if (slopeL && y - y0 < 40) c = light;
+      px(ctx, xx, y, c);
+    }
+    px(ctx, xx, y0, light);
+    if (grass) px(ctx, xx, y0, grass, 1, 2);
+  }
+}
+
+// Шар туману/серпанку: напівпрозора смуга з дизерингом (між паралакс-шарами).
+export function haze(ctx, { W, y0, y1, color, alpha }) {
+  for (let y = y0; y < y1; y++) {
+    const k = (y - y0) / Math.max(1, y1 - y0);
+    ctx.fillStyle = `rgba(${color}, ${alpha * (1 - Math.abs(k - 0.5) * 2) ** 0.6})`;
+    ctx.fillRect(0, y, W, 1);
   }
 }

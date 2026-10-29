@@ -1,10 +1,9 @@
-// Реєстр спрайтів: розбір матриць, процедурні спрайти, кеш готових canvas.
+// Реєстр спрайтів: розбір матриць, процедурні спрайти (decorSprites.js), кеш готових canvas.
 // Розміри (spriteSize) доступні без DOM — це використовує ігрова логіка і тести.
 import { MATRIX_SPRITES } from './spriteData.js';
-import { PROCEDURAL_SPRITES } from './proceduralSprites.js';
+import { DECOR_SPRITES as PROCEDURAL_SPRITES } from './decorSprites.js';
 import { createRng, hashString } from './rng.js';
-import { drawBike, BIKE_FRAMES } from './bikeSprite.js';
-import { PLAYER_W, PLAYER_H } from './constants.js';
+import { drawBikeRider, previewState, BIKE_FRAMES } from './bikeSprite.js';
 
 const parsed = new Map();
 const canvases = new Map();
@@ -144,15 +143,16 @@ export function getSprite(name, { frame = 0, flip = false, silhouette = null, pa
   return c;
 }
 
-// ---- Велосипедист (вид збоку) ----
+// ---- Велосипедист (вид збоку) для інтерфейсу ----
+export const PREVIEW = { w: 44, h: 38, ox: 22, oy: 20 };
 
-export function getBikeFrame(skin, frame) {
+export function getBikeFrame(spec, skin, frame) {
   const f = ((frame % BIKE_FRAMES) + BIKE_FRAMES) % BIKE_FRAMES;
-  const id = `bike|${skin.id}|${f}`;
+  const id = `bike|${spec.id}|${skin.id}|${f}`;
   let c = canvases.get(id);
   if (c) return c;
-  c = createCanvas(PLAYER_W, PLAYER_H);
-  drawBike(c.getContext('2d'), skin.palette, f);
+  c = createCanvas(PREVIEW.w, PREVIEW.h);
+  drawBikeRider(c.getContext('2d'), spec, skin.palette, previewState(spec, f), PREVIEW.ox, PREVIEW.oy, PREVIEW);
   canvases.set(id, c);
   return c;
 }

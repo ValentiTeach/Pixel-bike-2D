@@ -3,7 +3,7 @@ import Button from './Button.jsx';
 import { Toggle } from './Settings.jsx';
 import { useMenuKeys } from '../hooks/useMenuKeys.js';
 
-export default function PauseMenu({ save, setSave, onResume, onRestart, onExit }) {
+export default function PauseMenu({ save, setSave, canRespawn, onRespawn, onResume, onRestart, onExit }) {
   const ref = useRef(null);
   useMenuKeys(ref);
   const s = save.settings;
@@ -17,11 +17,16 @@ export default function PauseMenu({ save, setSave, onResume, onRestart, onExit }
           <Button variant="primary" icon="play" onClick={onResume}>
             Продовжити
           </Button>
+          {canRespawn && (
+            <Button icon="flag" onClick={onRespawn}>
+              На чекпоінт
+            </Button>
+          )}
           <Button icon="retry" onClick={onRestart}>
             Спочатку
           </Button>
           <Button variant="ghost" icon="chevronLeft" onClick={onExit}>
-            До локацій
+            До трас
           </Button>
         </div>
         <div className="modal__toggles">

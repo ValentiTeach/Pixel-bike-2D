@@ -1,4 +1,6 @@
-// Звук без жодного аудіофайлу: 8-бітні ефекти і чіптюн-музика через Web Audio API.
+// Звук без жодного аудіофайлу: ефекти, «живий» звук їзди і чіптюн-музика через Web Audio API.
+// Звук їзди синтезується безперервно: шурхіт шин (фільтрований шум, тембр залежить від покриття),
+// свист вітру на швидкості, вереск заносу і характерна тріскачка втулки, коли котишся без педалей.
 // AudioContext створюється лише після першої дії користувача (вимога браузерів).
 
 const NOTE_INDEX = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
@@ -98,6 +100,7 @@ class AudioManager {
       const data = this.noiseBuffer.getChannelData(0);
       for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
       this.applySettings();
+      this.initRide();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
     if (this.track && !this.playing) this.startMusic(this.track);
@@ -114,6 +117,87 @@ class AudioManager {
     this.master.gain.setTargetAtTime(this.settings.volume, t, 0.02);
     this.musicGain.gain.setTargetAtTime(this.settings.music ? 0.32 : 0, t, 0.05);
     this.sfxGain.gain.setTargetAtTime(this.settings.sfx ? 0.55 : 0, t, 0.02);
+  }
+
+  // ---------- Безперервний звук їзди ----------
+  initRide() {
+    const ctx = this.ctx;
+    const loop = (filters, gainNode) => {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      src.loop = true;
+      let node = src;
+      for (const f of filters) node = node.connect(f);
+      node.connect(gainNode).connect(this.sfxGain);
+      src.start();
+      return src;
+    };
+    const bq = (type, freq, Q = 0.8) => {
+      const f = ctx.createBiquadFilter();
+      f.type = type;
+      f.frequency.value = freq;
+      f.Q.value = Q;
+      return f;
+    };
+    const gain = () => {
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      return g;
+    };
+    this.rollFilter = bq('bandpass', 500, 0.7);
+    this.rollGain = gain();
+    loop([this.rollFilter], this.rollGain);
+    this.windGain = gain();
+    loop([bq('highpass', 500), bq('lowpass', 2200)], this.windGain);
+    this.skidGain = gain();
+    loop([bq('bandpass', 2400, 3)], this.skidGain);
+    this.tickRate = 0;
+    this.nextTick = 0;
+    this.tickTimer = setInterval(() => this.scheduleTicks(), 25);
+  }
+
+  // Тембр шурхоту шин для покриттів: [частота фільтра, гучність].
+  static SURFACE = {
+    dirt: [420, 1], roots: [380, 1.1], grass: [300, 0.7], rock: [900, 1.15], wood: [650, 1.2], sand: [260, 0.9], snow: [220, 0.8],
+    ice: [1600, 0.5], mud: [180, 1], concrete: [1100, 0.8], water: [700, 1.4], log: [500, 1], gravel: [1500, 1.3], gap: [400, 0],
+  };
+
+  /**
+   * Щокадрове оновлення звуку їзди.
+   * @param {{speed:number, grounded:boolean, mat:string|null, skid:boolean, pedaling:boolean, wheelSpin:number, active:boolean}} st
+   */
+  updateRide(st) {
+    if (!this.ctx || !this.rollGain) return;
+    const t = this.ctx.currentTime;
+    const on = st.active && this.settings.sfx;
+    const [freq, k] = AudioManager.SURFACE[st.mat] ?? AudioManager.SURFACE.dirt;
+    const v = st.speed;
+    this.rollFilter.frequency.setTargetAtTime(freq * (0.8 + Math.min(1, v / 12) * 0.5), t, 0.05);
+    this.rollGain.gain.setTargetAtTime(on && st.grounded ? Math.min(0.32, (0.015 + v * 0.016) * k) : 0, t, 0.04);
+    this.windGain.gain.setTargetAtTime(on ? Math.min(0.2, v * v * 0.0011) : 0, t, 0.1);
+    this.skidGain.gain.setTargetAtTime(on && st.skid && st.grounded ? 0.12 : 0, t, 0.03);
+    // тріскачка: собачки втулки клацають, коли колесо обганяє педалі
+    const revs = st.wheelSpin / (2 * Math.PI * 0.37);
+    this.tickRate = on && !st.pedaling && st.wheelSpin > 0.6 ? Math.min(70, revs * 24) : 0;
+  }
+
+  stopRide() {
+    if (!this.ctx || !this.rollGain) return;
+    this.updateRide({ speed: 0, grounded: false, mat: null, skid: false, pedaling: false, wheelSpin: 0, active: false });
+  }
+
+  scheduleTicks() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    if (this.tickRate <= 0) {
+      this.nextTick = now;
+      return;
+    }
+    if (this.nextTick < now) this.nextTick = now;
+    while (this.nextTick < now + 0.06) {
+      this.tone(3400 + Math.random() * 400, this.nextTick, 0.008, { wave: 'square', vol: 0.025 });
+      this.nextTick += (1 / this.tickRate) * (0.85 + Math.random() * 0.3);
+    }
   }
 
   // ---------- Примітиви ----------
@@ -148,50 +232,57 @@ class AudioManager {
   }
 
   // ---------- Звукові ефекти ----------
-  play(name) {
+  play(name, opts = {}) {
     if (!this.ctx || !this.settings.sfx) return;
     const t = this.ctx.currentTime + 0.005;
+    const power = opts.power ?? 0.5;
     switch (name) {
       case 'coin':
-        this.tone(988, t, 0.06, { vol: 0.18 });
-        this.tone(1319, t + 0.06, 0.12, { vol: 0.18 });
+        this.tone(988, t, 0.06, { vol: 0.14 });
+        this.tone(1319, t + 0.06, 0.12, { vol: 0.14 });
         break;
-      case 'hit':
-        this.noise(t, 0.25, { vol: 0.5, filter: 1200 });
-        this.tone(220, t, 0.3, { wave: 'square', vol: 0.25, slide: -160 });
-        break;
-      case 'crash':
-        this.noise(t, 0.6, { vol: 0.6, filter: 800 });
-        this.tone(330, t, 0.7, { wave: 'sawtooth', vol: 0.22, slide: -280 });
-        break;
-      case 'shield':
-        [523, 659, 784, 1047].forEach((f, i) => this.tone(f, t + i * 0.06, 0.1, { vol: 0.18 }));
-        break;
-      case 'shieldBreak':
-        this.noise(t, 0.3, { vol: 0.35, filter: 4000, type: 'highpass' });
-        this.tone(1200, t, 0.3, { wave: 'triangle', vol: 0.25, slide: -900 });
-        break;
-      case 'heart':
-        this.tone(659, t, 0.1, { wave: 'triangle', vol: 0.3 });
-        this.tone(880, t + 0.1, 0.18, { wave: 'triangle', vol: 0.3 });
-        break;
-      case 'jump':
-        this.tone(330, t, 0.14, { wave: 'square', vol: 0.14, slide: 400 });
+      case 'bigcoin':
+        [988, 1319, 1568, 1976].forEach((f, i) => this.tone(f, t + i * 0.05, 0.1, { vol: 0.16 }));
         break;
       case 'land':
-        this.noise(t, 0.06, { vol: 0.18, filter: 600 });
+        // удар підвіски: глухий «бум» + шурхіт
+        this.tone(90, t, 0.12 + power * 0.1, { wave: 'sine', vol: 0.2 + power * 0.35, slide: -50 });
+        this.noise(t, 0.08 + power * 0.12, { vol: 0.12 + power * 0.3, filter: 500 });
+        if (power > 0.6) this.noise(t + 0.02, 0.05, { vol: 0.12, filter: 3000, type: 'highpass' });
         break;
-      case 'bump':
-        this.tone(120, t, 0.12, { wave: 'square', vol: 0.2, slide: -40 });
+      case 'thud':
+        this.tone(70, t, 0.18, { wave: 'sine', vol: 0.25 + power * 0.3, slide: -30 });
+        this.noise(t, 0.15, { vol: 0.2 + power * 0.2, filter: 400 });
         break;
-      case 'fall':
-        this.tone(700, t, 0.5, { wave: 'triangle', vol: 0.28, slide: -600 });
+      case 'scrape':
+        this.noise(t, 0.12, { vol: 0.12, filter: 3500, type: 'bandpass' });
+        break;
+      case 'hop':
+        this.noise(t, 0.08, { vol: 0.08, filter: 900 });
+        break;
+      case 'checkpoint':
+        this.tone(1568, t, 0.35, { wave: 'triangle', vol: 0.2 });
+        this.tone(2093, t + 0.08, 0.5, { wave: 'triangle', vol: 0.16 });
+        break;
+      case 'trick':
+        this.noise(t, 0.25, { vol: 0.1, filter: 1800, type: 'bandpass' });
+        [784, 988, 1175].forEach((f, i) => this.tone(f, t + 0.05 + i * 0.07, 0.14, { wave: 'triangle', vol: 0.18 }));
+        break;
+      case 'respawn':
+        this.tone(440, t, 0.12, { wave: 'triangle', vol: 0.15, slide: 300 });
+        break;
+      case 'splashBig':
+        this.noise(t, 0.6, { vol: 0.45, filter: 1200 });
+        this.noise(t + 0.05, 0.4, { vol: 0.2, filter: 3000, type: 'highpass' });
+        break;
+      case 'crash':
+        // удар тіла об землю і брязкіт велосипеда
+        this.noise(t, 0.5, { vol: 0.55, filter: 700 });
+        this.tone(80, t, 0.35, { wave: 'sine', vol: 0.4, slide: -40 });
+        this.noise(t + 0.08, 0.25, { vol: 0.18, filter: 4000, type: 'highpass' });
         break;
       case 'splash':
-        this.noise(t, 0.22, { vol: 0.3, filter: 900 });
-        break;
-      case 'slip':
-        this.tone(900, t, 0.35, { wave: 'sine', vol: 0.2, slide: -600 });
+        this.noise(t, 0.3, { vol: 0.25, filter: 1400 });
         break;
       case 'beep':
         this.tone(440, t, 0.12, { vol: 0.22 });

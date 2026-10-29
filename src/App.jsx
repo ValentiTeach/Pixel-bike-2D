@@ -57,7 +57,7 @@ export default function App() {
       const r = applyRunResult(saveRef.current, result);
       saveRef.current = r.save;
       setSave(r.save);
-      return { result, newBest: r.newBest, unlocked: r.unlocked };
+      return { result, newBest: r.newBest, unlocked: r.unlocked, earned: r.earned };
     },
     [setSave],
   );
