@@ -80,6 +80,29 @@ const PATHS = {
   ),
   rotate: <path d="M4 9a8 8 0 0 1 14-3.5M20 4v4h-4M20 15a8 8 0 0 1-14 3.5M4 20v-4h4" />,
   trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  rotateBack: <path d="M3 12a9 9 0 1 0 2.64-6.36L3 8.3M3 3v5.3h5.3" />,
+  rotateFwd: <path d="M21 12a9 9 0 1 1-2.64-6.36L21 8.3M21 3v5.3h-5.3" />,
+  pedal: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 12l5-6M15.5 4.5h4M4 20l8-8M2.5 20h4" />
+    </>
+  ),
+  brake: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8 12h8" />
+    </>
+  ),
+  mountain: <path d="M2 20l7-11 4 6 3-4 6 9z" />,
+  gauge: (
+    <>
+      <path d="M4.5 17a8.5 8.5 0 1 1 15 0" />
+      <path d="M12 13l4-5" />
+    </>
+  ),
+  crash: <path d="M12 3v6M12 13v.01M4 20h16L12 4z" />,
+  flip: <path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" />,
   keyboard: (
     <>
       <rect x="2.5" y="6" width="19" height="12" rx="2.5" />

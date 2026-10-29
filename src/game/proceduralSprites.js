@@ -1,6 +1,7 @@
 // Процедурні піксельні спрайти: машини, дерева, будинки, калюжі тощо.
 // Їх зручніше «намалювати кодом», ніж вручну матрицею. Кожен запис: { w, h, draw(ctx, rng) }.
 // Малюємо лише цілими прямокутниками без згладжування — тож стиль лишається піксельним.
+import { DECOR_SPRITES } from './decorSprites.js';
 
 const px = (ctx, x, y, c, w = 1, h = 1) => {
   ctx.fillStyle = c;
@@ -274,6 +275,9 @@ function dune() {
 }
 
 export const PROCEDURAL_SPRITES = {
+  // реалістичний декор у масштабі світу (16 px = 1 м)
+  ...DECOR_SPRITES,
+
   // машини (вид збоку)
   car_red: carSide('#e0483f', '#9a2a24', '#ff8a7a'),
   car_blue: carSide('#3f7fe0', '#24509a', '#8ab8ff'),

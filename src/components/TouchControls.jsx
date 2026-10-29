@@ -3,21 +3,28 @@ import Icon from './Icon.jsx';
 
 const coarse = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
-// Сенсорні зони на весь екран: зліва — «гальмо» і «розгін», справа (більша частина) — «стрибок».
-// Працює і мишею: затисни кнопку миші в потрібній зоні.
-export default function TouchControls({ onTouch, onJump, showHints }) {
-  const [active, setActive] = useState({});
-  const [hints] = useState(coarse);
+// Сенсорні кнопки як у мобільних MTB-іграх: зліва — нахил назад / уперед, справа — гальмо і педалі,
+// над педалями — банні-хоп. Працює і мишею: затисни кнопку миші на потрібній кнопці.
+const BUTTONS = [
+  { id: 'back', side: 'left', icon: 'rotateBack', label: 'Нахил назад' },
+  { id: 'forward', side: 'left', icon: 'rotateFwd', label: 'Нахил уперед' },
+  { id: 'brake', side: 'right', icon: 'brake', label: 'Гальмо' },
+  { id: 'pedal', side: 'right', icon: 'pedal', label: 'Педалі' },
+];
 
-  const zone = (id, press) => {
+export default function TouchControls({ onButton, showHints }) {
+  const [active, setActive] = useState({});
+  const [touch] = useState(coarse);
+
+  const bind = (id) => {
     const release = () => {
-      press(false);
+      onButton(id, false);
       setActive((a) => ({ ...a, [id]: false }));
     };
     return {
       onPointerDown: (e) => {
         e.currentTarget.setPointerCapture?.(e.pointerId);
-        press(true);
+        onButton(id, true);
         setActive((a) => ({ ...a, [id]: true }));
       },
       onPointerUp: release,
@@ -27,30 +34,24 @@ export default function TouchControls({ onTouch, onJump, showHints }) {
     };
   };
 
-  const show = hints && showHints;
+  // на комп'ютері керують клавіатурою — кнопки лише на сенсорних екранах
+  if (!touch) return null;
   return (
-    <div className="touch">
-      <div className={`touch__zone touch__zone--brake ${active.brake ? 'is-active' : ''}`} {...zone('brake', (p) => onTouch(-1, p))}>
-        {show && (
-          <span className="touch__btn" aria-label="Гальмо">
-            <Icon name="chevronLeft" />
-          </span>
-        )}
-      </div>
-      <div className={`touch__zone touch__zone--boost ${active.boost ? 'is-active' : ''}`} {...zone('boost', (p) => onTouch(1, p))}>
-        {show && (
-          <span className="touch__btn" aria-label="Розгін">
-            <Icon name="chevronRight" />
-          </span>
-        )}
-      </div>
-      <div className={`touch__zone touch__zone--jump ${active.jump ? 'is-active' : ''}`} {...zone('jump', onJump)}>
-        {show && (
-          <span className="touch__btn touch__btn--jump" aria-label="Стрибок">
-            <Icon name="arrowUp" />
-          </span>
-        )}
-      </div>
+    <div className={`touch ${showHints ? 'is-visible' : ''}`}>
+      {['left', 'right'].map((side) => (
+        <div key={side} className={`touch__group touch__group--${side}`}>
+          {side === 'right' && (
+            <button type="button" className={`touch__btn touch__btn--hop ${active.hop ? 'is-active' : ''}`} aria-label="Банні-хоп" {...bind('hop')}>
+              <Icon name="arrowUp" />
+            </button>
+          )}
+          {BUTTONS.filter((b) => b.side === side).map((b) => (
+            <button type="button" key={b.id} className={`touch__btn touch__btn--${b.id} ${active[b.id] ? 'is-active' : ''}`} aria-label={b.label} {...bind(b.id)}>
+              <Icon name={b.icon} />
+            </button>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

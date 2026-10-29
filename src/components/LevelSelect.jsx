@@ -4,12 +4,15 @@ import Button from './Button.jsx';
 import Icon from './Icon.jsx';
 import TopBar from './TopBar.jsx';
 import Stars from './Stars.jsx';
-import { SpriteIcon } from './SpriteIcon.jsx';
-import { LOCATIONS, locationIndex } from '../game/locations.js';
-import { getProgress, isUnlocked } from '../game/storage.js';
+import { LOCATIONS, locationIndex, DIFFICULTY } from '../game/locations.js';
+import { getProgress, isUnlocked, formatTime } from '../game/storage.js';
 import { getSkin } from '../game/skins.js';
-import { ENTITY_TYPES } from '../game/entities.js';
 import { audio } from '../game/audio.js';
+
+// Значок складності траси, як на табличках байк-парків: коло, квадрат, ромб, два ромби.
+export function DifficultyMark({ level }) {
+  return <span className={`diff diff--${level}`} title={`${DIFFICULTY[level].label} — ${DIFFICULTY[level].hint}`} />;
+}
 
 export default function LevelSelect({ save, onBack, onStart }) {
   const [index, setIndex] = useState(() => Math.max(0, locationIndex(save.lastLocation)));
@@ -36,7 +39,7 @@ export default function LevelSelect({ save, onBack, onStart }) {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  // свайп по прев'ю — гортання локацій
+  // свайп по прев'ю — гортання трас
   const [touchX, setTouchX] = useState(null);
 
   return (
@@ -49,7 +52,7 @@ export default function LevelSelect({ save, onBack, onStart }) {
           setTouchX(null);
         }}
       >
-        <GameCanvas key={loc.id} locationId={loc.id} mode="demo" skin={getSkin(save.skin)} className={`bg-canvas ${unlocked ? '' : 'is-locked'}`} />
+        <GameCanvas key={loc.id} locationId={loc.id} mode="demo" skin={getSkin(save.skin)} bikeId={save.bike} className={`bg-canvas ${unlocked ? '' : 'is-locked'}`} />
         {!unlocked && (
           <div className="select__lock">
             <Icon name="lock" size="2.6em" />
@@ -57,7 +60,7 @@ export default function LevelSelect({ save, onBack, onStart }) {
         )}
       </div>
 
-      <TopBar title="Локації" onBack={onBack} coins={save.coins} />
+      <TopBar title="Траси" onBack={onBack} coins={save.coins} />
 
       <section className="select__card glass" key={loc.id}>
         <div className="select__head">
@@ -65,21 +68,18 @@ export default function LevelSelect({ save, onBack, onStart }) {
             {String(index + 1).padStart(2, '0')} / {String(LOCATIONS.length).padStart(2, '0')}
           </span>
           <div className="select__arrows">
-            <Button variant="ghost" size="sm" icon="chevronLeft" onClick={() => move(-1)} disabled={index === 0} aria-label="Попередня локація" />
-            <Button
-              variant="ghost"
-              size="sm"
-              icon="chevronRight"
-              onClick={() => move(1)}
-              disabled={index === LOCATIONS.length - 1}
-              aria-label="Наступна локація"
-            />
+            <Button variant="ghost" size="sm" icon="chevronLeft" onClick={() => move(-1)} disabled={index === 0} aria-label="Попередня траса" />
+            <Button variant="ghost" size="sm" icon="chevronRight" onClick={() => move(1)} disabled={index === LOCATIONS.length - 1} aria-label="Наступна траса" />
           </div>
         </div>
 
-        <h2 className="select__name">{loc.name}</h2>
-        <p className="select__subtitle">{loc.subtitle}</p>
-        <div className="select__bars" role="tablist" aria-label="Локації">
+        <h2 className="select__name">
+          <DifficultyMark level={loc.difficulty} /> {loc.name}
+        </h2>
+        <p className="select__subtitle">
+          {DIFFICULTY[loc.difficulty].label} · {loc.subtitle}
+        </p>
+        <div className="select__bars" role="tablist" aria-label="Траси">
           {LOCATIONS.map((l, i) => (
             <button
               type="button"
@@ -94,9 +94,11 @@ export default function LevelSelect({ save, onBack, onStart }) {
         </div>
         <p className="select__desc">{loc.description}</p>
 
-        <div className="select__obstacles" aria-label="Перешкоди локації">
-          {[...loc.obstacles, ...loc.movers, ...loc.flyers, ...loc.hazards].map((o) => (
-            <SpriteIcon key={o.type} name={ENTITY_TYPES[o.type].sprites[0]} box={14} />
+        <div className="chips chips--features" aria-label="Що на трасі">
+          {loc.features.map((f) => (
+            <span key={f} className="chip">
+              {f}
+            </span>
           ))}
         </div>
 
@@ -108,24 +110,37 @@ export default function LevelSelect({ save, onBack, onStart }) {
             </dd>
           </div>
           <div>
-            <dt>Траса</dt>
-            <dd>{loc.lengthM} м</dd>
+            <dt>Рекорд</dt>
+            <dd>{formatTime(prog.bestTime)}</dd>
           </div>
           <div>
-            <dt>Рекорд ∞</dt>
-            <dd>{prog.bestEndless ? `${prog.bestEndless} м` : '—'}</dd>
+            <dt>
+              <Icon name="star" fill className="c-accent" /> за
+            </dt>
+            <dd>
+              {formatTime(loc.times.gold)}
+              <small> / {formatTime(loc.times.silver)}</small>
+            </dd>
+          </div>
+          <div>
+            <dt>Траса</dt>
+            <dd>{loc.lengthM} м</dd>
           </div>
         </dl>
 
         {unlocked ? (
           <div className="select__actions">
             <Button variant="primary" icon="play" onClick={() => onStart(loc.id, 'level')}>
-              Почати
+              Старт
             </Button>
-            <Button icon="infinity" onClick={() => onStart(loc.id, 'endless')} disabled={!prog.completed} title="Нескінченний режим">
-              Без кінця
+            <Button icon="infinity" onClick={() => onStart(loc.id, 'endless')} disabled={!prog.completed} title="Фрірайд — нескінченна траса">
+              Фрірайд
             </Button>
-            {!prog.completed && <p className="hint">Пройди рівень, щоб відкрити нескінченний режим.</p>}
+            {!prog.completed ? (
+              <p className="hint">Пройди трасу, щоб відкрити фрірайд.</p>
+            ) : (
+              prog.bestEndless > 0 && <p className="hint">Рекорд фрірайду: {prog.bestEndless} м</p>
+            )}
           </div>
         ) : (
           <p className="select__locked">

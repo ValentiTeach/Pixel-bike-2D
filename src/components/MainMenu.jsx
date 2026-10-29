@@ -14,17 +14,17 @@ export default function MainMenu({ save, onNavigate }) {
 
   return (
     <div className="screen menu">
-      <GameCanvas locationId={save.lastLocation} mode="demo" skin={getSkin(save.skin)} className="bg-canvas" />
+      <GameCanvas locationId={save.lastLocation} mode="demo" skin={getSkin(save.skin)} bikeId={save.bike} className="bg-canvas" />
       <div className="menu__shade" />
       <div className="menu__content">
         <div className="menu__brand">
-          <span className="eyebrow">2D cycling · 6 локацій</span>
+          <span className="eyebrow">Mountain bike · {LOCATIONS.length} трас</span>
           <h1 className="title">
             Pixel
             <br />
             Bike<span className="title__dot">.</span>
           </h1>
-          <p className="lead">Крути педалі, стрибай через перешкоди й доїдь до фінішу.</p>
+          <p className="lead">Справжня фізика гірського велосипеда: підвіска, зчеплення, дропи, гепи й сальто.</p>
           <div className="chips">
             <span className="pill">
               <Icon name="star" fill className="c-accent" />
@@ -39,7 +39,7 @@ export default function MainMenu({ save, onNavigate }) {
 
         <nav className="menu__nav glass" ref={navRef}>
           <Button variant="primary" size="lg" icon="play" onClick={() => onNavigate('select')}>
-            Грати
+            Кататися
           </Button>
           <Button variant="ghost" icon="bike" iconRight="chevronRight" onClick={() => onNavigate('garage')}>
             Гараж

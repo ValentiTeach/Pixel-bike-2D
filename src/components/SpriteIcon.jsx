@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getSprite, getBikeFrame, spriteSize } from '../game/sprites.js';
-import { PLAYER_W, PLAYER_H } from '../game/constants.js';
+import { getSprite, getBikeFrame, spriteSize, PREVIEW } from '../game/sprites.js';
 
 // Малює ігровий спрайт у маленькому canvas; розмір у CSS кратний ігровому пікселю (--u).
 export function SpriteIcon({ name, frame = 0, scale: scaleProp = 1, box, className = '', title }) {
@@ -28,21 +27,22 @@ export function SpriteIcon({ name, frame = 0, scale: scaleProp = 1, box, classNa
   );
 }
 
-export function BikeIcon({ skin, frame = 0, scale = 1, className = '' }) {
+// Велосипед з райдером (вигляд збоку) — для гаража і «Як грати».
+export function BikeIcon({ bike, skin, frame = 0, scale = 1, className = '' }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current;
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, c.width, c.height);
-    ctx.drawImage(getBikeFrame(skin, frame), 0, 0);
-  }, [skin, frame]);
+    ctx.drawImage(getBikeFrame(bike, skin, frame), 0, 0);
+  }, [bike, skin, frame]);
   return (
     <canvas
       ref={ref}
-      width={PLAYER_W}
-      height={PLAYER_H}
+      width={PREVIEW.w}
+      height={PREVIEW.h}
       className={`sprite-icon ${className}`}
-      style={{ width: `calc(var(--u) * ${PLAYER_W * scale})`, height: `calc(var(--u) * ${PLAYER_H * scale})` }}
+      style={{ width: `calc(var(--u) * ${PREVIEW.w * scale})`, height: `calc(var(--u) * ${PREVIEW.h * scale})` }}
       aria-hidden
     />
   );
